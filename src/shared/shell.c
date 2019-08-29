@@ -593,6 +593,39 @@ done:
 	free(input);
 }
 
+int bt_shell_manual_input(const char *input)
+{
+	wordexp_t w;
+	int status;
+
+	if (!input) {
+		rl_insert_text("quit");
+		rl_redisplay();
+		rl_crlf();
+		mainloop_quit();
+		return 1;
+	}
+
+	if (!strlen(input))
+		return 1;
+
+	if (!bt_shell_release_prompt(input))
+		return 1;
+
+	if (wordexp(input, &w, WRDE_NOCMD))
+		return 1;
+
+	if (w.we_wordc == 0) {
+		wordfree(&w);
+		return 1;
+	}
+
+	status = shell_exec(w.we_wordc, w.we_wordv);
+	wordfree(&w);
+
+	return status;
+}
+
 static char *find_cmd(const char *text,
 			const struct bt_shell_menu_entry *entry, int *index)
 {

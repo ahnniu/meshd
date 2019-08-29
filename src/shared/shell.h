@@ -95,3 +95,5 @@ void bt_shell_set_env(const char *name, void *value);
 void *bt_shell_get_env(const char *name);
 
 void bt_shell_cleanup(void);
+
+int bt_shell_manual_input(const char *input);
