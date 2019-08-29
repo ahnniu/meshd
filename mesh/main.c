@@ -59,6 +59,9 @@
 #include "mesh/config-model.h"
 #include "mesh/onoff-model.h"
 
+#include "mesh/dbus-server.h"
+#include "mesh/meshd-interface-sample.h"
+
 /* String display constants */
 #define COLORED_NEW	COLOR_GREEN "NEW" COLOR_OFF
 #define COLORED_CHG	COLOR_YELLOW "CHG" COLOR_OFF
@@ -1990,8 +1993,21 @@ int main(int argc, char *argv[])
 	if (!onoff_client_init(PRIMARY_ELEMENT_IDX))
 		g_printerr("Failed to initialize mesh generic On/Off client\n");
 
+	if (meshd_connect_dbus() < 0) {
+		g_printerr("Unable to get on meshd D-Bus\n");
+		status = EXIT_FAILURE;
+		goto quit;
+	}
+
+	if(sample_register() < 0) {
+		g_printerr("Sample Interface register failed\n");
+		status = EXIT_FAILURE;
+		goto quit;
+	}
+
 	status = bt_shell_run();
 
+quit:
 	g_dbus_client_unref(client);
 
 	dbus_connection_unref(dbus_conn);

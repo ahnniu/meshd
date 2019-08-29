@@ -28,7 +28,9 @@ mesh_meshctl_SOURCES = mesh/main.c \
 				mesh/prov-db.h mesh/prov-db.c \
 				mesh/config-model.h mesh/config-client.c \
 				mesh/config-server.c \
-				mesh/onoff-model.h mesh/onoff-model.c
+				mesh/onoff-model.h mesh/onoff-model.c \
+				mesh/dbus-server.c \
+				mesh/meshd-interface-sample.c
 mesh_meshctl_LDADD = gdbus/libgdbus-internal.la src/libshared-glib.la \
 				lib/libbluetooth-internal.la \
 				@GLIB_LIBS@ @DBUS_LIBS@ -ljson-c -lreadline
