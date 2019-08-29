@@ -166,3 +166,5 @@ android/test-*.trs
 cscope.in.out
 cscope.out
 cscope.po.out
+
+.vscode/*

@@ -953,6 +953,20 @@ static void setup_whitelist()
 		net_ctl_msg_send(0, 0, 0, white.data, white.len);
 }
 
+static void setup_blacklist()
+{
+	struct build_whitelist white;
+
+	white.len = 0;
+
+	/* Enable (and Clear) Proxy Whitelist */
+	white.data[white.len++] = FILTER_SETUP;
+	white.data[white.len++] = BLACKLIST_FILTER;
+
+	net_ctl_msg_send(0, 0, 0, white.data, white.len);
+}
+
+
 static void beacon_update(bool first, bool iv_update, uint32_t iv_index)
 {
 
@@ -1002,7 +1016,8 @@ static void beacon_update(bool first, bool iv_update, uint32_t iv_index)
 
 	if (first) {
 		/* Must be done once per Proxy Connection after Beacon RXed */
-		setup_whitelist();
+		// setup_whitelist();
+		setup_blacklist();
 		if (net.open_cb)
 			net.open_cb(0);
 	}

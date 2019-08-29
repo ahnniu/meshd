@@ -490,6 +490,101 @@ static bool deliver_model_data(struct mesh_element* element, uint16_t src,
 	return false;
 }
 
+static struct mesh_model* find_model_by_pub_addr(uint32_t addr)
+{
+	GList *n;
+	GList *e;
+	GList *m;
+	struct mesh_node *node;
+	struct mesh_element *element;
+	struct mesh_model *model;
+	struct mesh_publication *pub;
+
+	for(n = nodes; n; n = n->next) {
+		node = n->data;
+		for(e = node->elements; e; e = e->next) {
+			element = e->data;
+			for(m = element->models; m; m = m->next) {
+				model = m->data;
+				if(model) {
+					pub = model->pub;
+					if(pub) {
+						if(addr == pub->u.addr16)
+							return model;
+					}
+				}
+			}
+		}
+	}
+
+	return NULL;
+}
+
+static char* group_addr_type_data_to_json(uint32_t id, uint16_t src, uint32_t dst,
+				uint32_t opcode, uint8_t *data, uint16_t len)
+{
+	char *json_data;
+	int json_len;
+	int json_i;
+	int data_i;
+
+	json_len = 80 + (4 * len - 1);
+	json_data = (char *) g_malloc0(json_len);
+	memset(json_data, 0, json_len);
+
+	json_i = snprintf(&json_data[0], json_len,
+		"{"
+		"\"id\":\"%4.4x\","
+		"\"source\":\"%4.4x\","
+		"\"dest\":\"%4.4x\","
+		"\"opcode\":\"%4.4x\","
+		"\"data\":[",
+		id, src, dst, opcode);
+
+	for(data_i = 0; data_i < len; data_i++)
+		json_i += snprintf(&json_data[json_i], json_len - json_i, "\"%2.2x\",", data[data_i]);
+
+	// Remove the last ','
+	if(len > 0)
+		json_i--;
+
+	json_data[json_i++] = ']';
+	json_data[json_i++] = '}';
+	json_data[json_i] = 0;
+
+	return json_data;
+}
+static bool deliver_group_addr_type_data(uint16_t src, uint32_t dst,
+				uint16_t app_idx, uint8_t *data, uint16_t len)
+{
+	struct mesh_model *model;
+	char *json_data;
+	uint32_t id;
+	uint32_t opcode;
+	int n;
+
+	bt_shell_printf("Group Addr Msg:"
+		"src = %4.4x, dst = %4.4x \n", src, dst);
+
+	model = find_model_by_pub_addr(dst);
+	if(!model)
+		return false;
+
+	id = model->id & 0xFFFF;
+
+	if (mesh_opcode_get(data, len, &opcode, &n)) {
+		len -= n;
+		data += n;
+	} else
+		return false;
+
+	json_data = group_addr_type_data_to_json(id, src, dst, opcode, data, len);
+	bt_shell_printf("[PubCaptured]:%s\n", json_data);
+	free(json_data);
+
+	return true;
+}
+
 void node_local_data_handler(uint16_t src, uint32_t dst,
 		uint32_t iv_index, uint32_t seq_num,
 		uint16_t app_idx, uint8_t *data, uint16_t len)
@@ -544,6 +639,7 @@ void node_local_data_handler(uint16_t src, uint32_t dst,
 
 	if (IS_GROUP(dst) || IS_VIRTUAL(dst)) {
 		/* TODO: if subscription address, deliver to subscribers */
+		deliver_group_addr_type_data(src, dst, app_idx, data, len);
 		return;
 	}
 
