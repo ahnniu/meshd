@@ -61,6 +61,7 @@
 
 #include "mesh/dbus-server.h"
 #include "mesh/meshd-interface-sample.h"
+#include "mesh/meshd-prov.h"
 
 /* String display constants */
 #define COLORED_NEW	COLOR_GREEN "NEW" COLOR_OFF
@@ -369,6 +370,7 @@ static void print_prov_service(struct prov_svc_data *prov_data)
 	bt_shell_printf("%s\tDevice UUID: %s\n", prefix, txt_uuid);
 	bt_shell_printf("%s\tOOB: %4.4x\n", prefix, prov_data->oob);
 
+	prov_emit_new_device_discovered(txt_uuid);
 }
 
 static bool parse_prov_service_data(const char *uuid, uint8_t *data, int len,
@@ -2001,6 +2003,12 @@ int main(int argc, char *argv[])
 
 	if(sample_register() < 0) {
 		g_printerr("Sample Interface register failed\n");
+		status = EXIT_FAILURE;
+		goto quit;
+	}
+
+	if(prov_register() < 0) {
+		g_printerr("D-bus Prov object register failed\n");
 		status = EXIT_FAILURE;
 		goto quit;
 	}
