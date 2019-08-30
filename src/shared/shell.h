@@ -97,3 +97,4 @@ void *bt_shell_get_env(const char *name);
 void bt_shell_cleanup(void);
 
 int bt_shell_manual_input(const char *input);
+int bt_shell_manual_input_fmt(const char *fmt, ...);

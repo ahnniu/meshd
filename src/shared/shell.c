@@ -620,10 +620,29 @@ int bt_shell_manual_input(const char *input)
 		return 1;
 	}
 
+	printf("[exec] %s\n", input);
+
 	status = shell_exec(w.we_wordc, w.we_wordv);
 	wordfree(&w);
 
 	return status;
+}
+
+int bt_shell_manual_input_fmt(const char *fmt, ...)
+{
+	va_list args;
+	int len;
+	char cmd[50];
+
+	memset(cmd, 0, 50);
+
+	va_start(args, fmt);
+	len = vsnprintf(cmd, 50, fmt, args);
+	va_end(args);
+
+	if(len >= 50) return 1;
+
+	return bt_shell_manual_input(cmd);
 }
 
 static char *find_cmd(const char *text,
