@@ -36,6 +36,7 @@
 
 #include "src/shared/shell.h"
 #include "mesh/util.h"
+#include "mesh/meshd-prov.h"
 #include "mesh/agent.h"
 
 struct input_request {
@@ -157,12 +158,15 @@ bool agent_input_request(oob_type_t type, uint16_t max_len, agent_input_cb cb,
 
 	switch (type) {
 	case HEXADECIMAL:
+		prov_emit_request_key("HEX", max_len);
 		result = request_hexadecimal(max_len);
 		break;
 	case DECIMAL:
+		prov_emit_request_key("DECIMAL", max_len);
 		result = request_decimal(max_len);
 		break;
 	case ASCII:
+		prov_emit_request_key("ASCII", max_len);
 		result = request_ascii(max_len);
 		break;
 	case NONE:

@@ -7,6 +7,8 @@
 #define MESHCTLD_OBJECT_PATH_PROVISIONER "/org/embest/Provisioner"
 
 #define MESHCTLD_SIGNAL_UNPROVISIONED_DEVICE_DISCOVERED  "UnprovisionedDeviceDiscovered"
+#define MESHCTLD_SIGNAL_REQUEST_KEY "RequestKey"
+#define MESHCTLD_SIGNAL_PROVISION_DONE "ProvisionDone"
 
 extern int meshd_connect_dbus(void);
 extern void meshd_disconnected_dbus(DBusConnection *conn, void *data);

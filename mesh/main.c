@@ -1762,6 +1762,7 @@ static void mesh_prov_done(void *user_data, int status)
 
 	if (status){
 		bt_shell_printf("Provisioning failed\n");
+		prov_emit_provision_failed(-EFAULT, "Provisioning failed\n");
 		node_free(node);
 		disconnect_device(NULL, NULL);
 		return;
@@ -1769,6 +1770,7 @@ static void mesh_prov_done(void *user_data, int status)
 
 	bt_shell_printf("Provision success. Assigned Primary Unicast %4.4x\n",
 						node_get_primary(node));
+	prov_emit_provision_success(node_get_primary(node));
 
 	if (!prov_db_add_new_node(node))
 		bt_shell_printf("Failed to add node to provisioning DB\n");
@@ -1786,6 +1788,7 @@ static void cmd_start_prov(int argc, char *argv[])
 	len = strlen(argv[1]);
 	if ( len > 32 || len % 2) {
 		bt_shell_printf("Incorrect UUID size %d\n", len);
+		prov_emit_provision_failed(-EINVAL, "Incorrect UUID size %d\n", len);
 	}
 
 	disconnect_device(NULL, NULL);
@@ -1798,12 +1801,18 @@ static void cmd_start_prov(int argc, char *argv[])
 		bt_shell_printf("Device with UUID %s not found.\n", argv[1]);
 		bt_shell_printf("Stale services? Remove device and "
 						"re-discover\n");
+		prov_emit_provision_failed(-ENODEV,
+			"Device with UUID %s not found. "
+			"Stale services? Remove device and "
+			"re-discover\n", argv[1]);
 		return bt_shell_noninteractive_quit(EXIT_FAILURE);
 	}
 
 	/* TODO: add command to remove a node from mesh, i.e., "unprovision" */
 	if (node_is_provisioned(node)) {
 		bt_shell_printf("Already provisioned with unicast %4.4x\n",
+				node_get_primary(node));
+		prov_emit_provision_failed(-EEXIST, "Already provisioned with unicast %4.4x\n",
 				node_get_primary(node));
 		return bt_shell_noninteractive_quit(EXIT_FAILURE);
 	}
@@ -1812,6 +1821,7 @@ static void cmd_start_prov(int argc, char *argv[])
 				  connection.dev_uuid);
 	if (!dev || !dev->proxy) {
 		bt_shell_printf("Could not find device proxy\n");
+		prov_emit_provision_failed(-ENXIO, "Could not find device proxy\n");
 		memset(connection.dev_uuid, 0, 16);
 		return bt_shell_noninteractive_quit(EXIT_FAILURE);
 	}
@@ -1827,6 +1837,7 @@ static void cmd_start_prov(int argc, char *argv[])
 	if (g_dbus_proxy_method_call(proxy, "Connect", NULL, connect_reply,
 							proxy, NULL) == FALSE) {
 		bt_shell_printf("Failed to connect ");
+		prov_emit_provision_failed(-ENOTCONN, "Failed to connect ");
 		print_device(proxy, NULL);
 		return bt_shell_noninteractive_quit(EXIT_FAILURE);
 	} else {
