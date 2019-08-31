@@ -640,12 +640,14 @@ static void connect_reply(DBusMessage *message, void *user_data)
 
 	if (dbus_set_error_from_message(&error, message) == TRUE) {
 		bt_shell_printf("Failed to connect: %s\n", error.name);
+		prov_emit_connect_failed(EFAULT, "Failed to connect: %s\n", error.name);
 		dbus_error_free(&error);
 		set_connected_device(NULL);
 		return bt_shell_noninteractive_quit(EXIT_FAILURE);
 	}
 
 	bt_shell_printf("Connection successful\n");
+	prov_emit_connect_success();
 
 	set_connected_device(proxy);
 
@@ -1226,6 +1228,10 @@ static void property_changed(GDBusProxy *proxy, const char *name,
 
 				if (resolved)
 					mesh_session_setup(connection.device);
+				else if (connection.session_open) {
+					// Lost connection
+					prov_emit_connection_lost();
+				}
 			}
 
 		}
@@ -1650,6 +1656,7 @@ static void cmd_connect(int argc, char *argv[])
 		if (end == argv[1]) {
 			connection.net_idx = NET_IDX_INVALID;
 			bt_shell_printf("Invalid network index %s\n", argv[1]);
+			prov_emit_connect_failed(EINVAL, "Invalid network index %s\n", argv[1]);
 			return bt_shell_noninteractive_quit(EXIT_FAILURE);
 		}
 
@@ -1679,6 +1686,7 @@ static void cmd_connect(int argc, char *argv[])
 			"StartDiscovery", NULL, start_discovery_reply,
 				GUINT_TO_POINTER(TRUE), NULL) == FALSE) {
 		bt_shell_printf("Failed to start mesh proxy discovery\n");
+		prov_emit_connect_failed(EFAULT, "Failed to start mesh proxy discovery\n");
 		return bt_shell_noninteractive_quit(EXIT_FAILURE);
 	}
 

@@ -99,6 +99,51 @@ static DBusMessage *exec_start_prov(DBusConnection *conn,
 	return reply;
 }
 
+static DBusMessage *exec_start_connect(DBusConnection *conn,
+					DBusMessage *msg, void *user_data)
+{
+	DBusMessage *reply;
+	DBusMessageIter iter;
+	dbus_uint16_t next_idx;
+	int error;
+
+	if (dbus_message_get_args(msg, NULL, DBUS_TYPE_UINT16, &next_idx,
+			DBUS_TYPE_INVALID) == FALSE)
+		return meshd_error_invalid_args(msg);
+
+	bt_shell_printf("[dbus][%s][%s] %s.%s(%d)\n",
+		dbus_message_get_destination(msg),
+		dbus_message_get_path(msg),
+		dbus_message_get_interface(msg),
+		dbus_message_get_member(msg),
+		next_idx);
+
+	error = bt_shell_manual_input_fmt("connect %d", next_idx);
+
+	reply = dbus_message_new_method_return(msg);
+
+	return reply;
+}
+
+static DBusMessage *exec_start_disconnect(DBusConnection *conn,
+					DBusMessage *msg, void *user_data)
+{
+	DBusMessage *reply;
+	int error;
+
+	bt_shell_printf("[dbus][%s][%s] %s.%s()\n",
+		dbus_message_get_destination(msg),
+		dbus_message_get_path(msg),
+		dbus_message_get_interface(msg),
+		dbus_message_get_member(msg));
+
+	error = bt_shell_manual_input_fmt("disconnect");
+
+	reply = dbus_message_new_method_return(msg);
+
+	return reply;
+}
+
 static const GDBusMethodTable prov_methods[] = {
 	{
 		GDBUS_METHOD("DiscoverUnprovisioned",
@@ -118,6 +163,18 @@ static const GDBusMethodTable prov_methods[] = {
 			NULL,
 			exec_enter_key)
 	},
+	{
+		GDBUS_METHOD("Connect",
+			GDBUS_ARGS({ "net_idx", "q" }),
+			NULL,
+			exec_start_connect)
+	},
+	{
+		GDBUS_METHOD("Disconnect",
+			NULL,
+			NULL,
+			exec_start_disconnect)
+	},
 	{ }
 };
 
@@ -127,6 +184,8 @@ static const GDBusSignalTable prov_signals[] = {
 	},
 	{ GDBUS_SIGNAL(MESHCTLD_SIGNAL_REQUEST_KEY, GDBUS_ARGS({ "type", "a{sv}" })) },
 	{ GDBUS_SIGNAL(MESHCTLD_SIGNAL_PROVISION_DONE, GDBUS_ARGS({ "result", "a{sv}" })) },
+	{ GDBUS_SIGNAL(MESHCTLD_SIGNAL_CONNECT_DONE, GDBUS_ARGS({ "result", "a{sv}" })) },
+	{ GDBUS_SIGNAL(MESHCTLD_SIGNAL_CONNECTION_LOST, NULL) },
 	{ }
 };
 
@@ -258,4 +317,73 @@ int prov_register()
 	if(!status) return -EINVAL;
 
 	return 0;
+}
+
+static void prov_emit_connect_done_with_error(int result, const char *error)
+{
+	DBusConnection *dbus_conn;
+	DBusMessage *signal;
+	DBusMessageIter iter, dict;
+	const char *arg_error = error;
+	int arg_result = result;
+
+	dbus_conn = meshd_get_dbus_connection();
+
+	signal = dbus_message_new_signal(MESHCTLD_OBJECT_PATH_PROVISIONER,
+					MESHCTLD_DBUS_MESH_INTERFACE,
+					MESHCTLD_SIGNAL_CONNECT_DONE);
+	if (signal == NULL)
+		return;
+
+	dbus_message_iter_init_append(signal, &iter);
+
+	dbus_message_iter_open_container(&iter, DBUS_TYPE_ARRAY,
+				DBUS_DICT_ENTRY_BEGIN_CHAR_AS_STRING
+				DBUS_TYPE_STRING_AS_STRING
+				DBUS_TYPE_VARIANT_AS_STRING
+				DBUS_DICT_ENTRY_END_CHAR_AS_STRING, &dict);
+
+	g_dbus_dict_append_entry(&dict, "status", DBUS_TYPE_INT32,
+				&arg_result);
+	g_dbus_dict_append_entry(&dict, "error", DBUS_TYPE_STRING,
+				&arg_error);
+	dbus_message_iter_close_container(&iter, &dict);
+
+	dbus_connection_send(dbus_conn, signal, NULL);
+	dbus_message_unref(signal);
+}
+
+void prov_emit_connect_failed(int result, const char *error, ...)
+{
+	va_list args;
+	char str[200];
+
+	if (error)
+		vsnprintf(str, sizeof(str), error, args);
+	else
+		str[0] = '\0';
+
+	return prov_emit_connect_done_with_error(result, str);
+}
+
+void prov_emit_connect_success()
+{
+	prov_emit_connect_done_with_error(0, "");
+}
+
+void prov_emit_connection_lost()
+{
+	DBusConnection *dbus_conn;
+	DBusMessage *signal;
+
+	dbus_conn = meshd_get_dbus_connection();
+
+	signal = dbus_message_new_signal(MESHCTLD_OBJECT_PATH_PROVISIONER,
+					MESHCTLD_DBUS_MESH_INTERFACE,
+					MESHCTLD_SIGNAL_CONNECTION_LOST);
+	if (signal == NULL)
+		return;
+
+	dbus_connection_send(dbus_conn, signal, NULL);
+	dbus_message_unref(signal);
 }

@@ -9,6 +9,8 @@
 #define MESHCTLD_SIGNAL_UNPROVISIONED_DEVICE_DISCOVERED  "UnprovisionedDeviceDiscovered"
 #define MESHCTLD_SIGNAL_REQUEST_KEY "RequestKey"
 #define MESHCTLD_SIGNAL_PROVISION_DONE "ProvisionDone"
+#define MESHCTLD_SIGNAL_CONNECT_DONE "ConnectDone"
+#define MESHCTLD_SIGNAL_CONNECTION_LOST "ConnectionLost"
 
 extern int meshd_connect_dbus(void);
 extern void meshd_disconnected_dbus(DBusConnection *conn, void *data);
