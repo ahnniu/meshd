@@ -1247,3 +1247,13 @@ void *bt_shell_get_env(const char *name)
 
 	return env->value;
 }
+
+const struct bt_shell_menu *bt_shell_current_menu()
+{
+	return data.menu;
+}
+
+const struct queue *bt_shell_get_submenus()
+{
+	return data.submenus;
+}

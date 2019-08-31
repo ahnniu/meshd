@@ -98,3 +98,6 @@ void bt_shell_cleanup(void);
 
 int bt_shell_manual_input(const char *input);
 int bt_shell_manual_input_fmt(const char *fmt, ...);
+
+const struct bt_shell_menu *bt_shell_current_menu();
+const struct queue *bt_shell_get_submenus();

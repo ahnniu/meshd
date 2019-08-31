@@ -5,6 +5,7 @@
 #define MESHCTLD_DBUS_ERROR_INTERFACE	"org.embest.Error"
 
 #define MESHCTLD_OBJECT_PATH_PROVISIONER "/org/embest/Provisioner"
+#define MESHCTLD_OBJECT_PATH_MENU "/org/embest/Shell"
 
 #define MESHCTLD_SIGNAL_UNPROVISIONED_DEVICE_DISCOVERED  "UnprovisionedDeviceDiscovered"
 #define MESHCTLD_SIGNAL_REQUEST_KEY "RequestKey"

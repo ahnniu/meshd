@@ -62,6 +62,7 @@
 #include "mesh/dbus-server.h"
 #include "mesh/meshd-interface-sample.h"
 #include "mesh/meshd-prov.h"
+#include "mesh/meshd-shell.h"
 
 /* String display constants */
 #define COLORED_NEW	COLOR_GREEN "NEW" COLOR_OFF
@@ -2028,6 +2029,12 @@ int main(int argc, char *argv[])
 
 	if(prov_register() < 0) {
 		g_printerr("D-bus Prov object register failed\n");
+		status = EXIT_FAILURE;
+		goto quit;
+	}
+
+	if(meshd_shell_register() < 0) {
+		g_printerr("D-bus Shell object register failed\n");
 		status = EXIT_FAILURE;
 		goto quit;
 	}
