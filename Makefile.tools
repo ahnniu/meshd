@@ -32,7 +32,8 @@ mesh_meshctl_SOURCES = mesh/main.c \
 				mesh/dbus-server.c \
 				mesh/meshd-interface-sample.c \
 				mesh/meshd-prov.c \
-				mesh/meshd-shell.c
+				mesh/meshd-shell.c \
+				mesh/meshd-config.c
 mesh_meshctl_LDADD = gdbus/libgdbus-internal.la src/libshared-glib.la \
 				lib/libbluetooth-internal.la \
 				@GLIB_LIBS@ @DBUS_LIBS@ -ljson-c -lreadline

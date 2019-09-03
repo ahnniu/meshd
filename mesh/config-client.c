@@ -47,6 +47,10 @@
 #include "mesh/util.h"
 #include "mesh/config-model.h"
 
+#include "mesh/dbus-server.h"
+#include "mesh/meshd-shell.h"
+#include "mesh/meshd-config.h"
+
 #define MIN_COMPOSITION_LEN 16
 
 static uint32_t print_mod_id(uint8_t *data, bool vid)
@@ -79,6 +83,8 @@ static bool client_msg_recvd(uint16_t src, uint8_t *data,
 	struct mesh_publication pub;
 	int n;
 	uint16_t i;
+	char val_list[200];
+	int c_len = 0, c_current = 0;
 
 	if (mesh_opcode_get(data, len, &opcode, &n)) {
 		len -= n;
@@ -126,6 +132,12 @@ static bool client_msg_recvd(uint16_t src, uint8_t *data,
 		bt_shell_printf("NetKey\t%3.3x\n", net_idx);
 		bt_shell_printf("AppKey\t%3.3x\n", app_idx);
 
+		config_emit_new_status("appkey", -data[0],
+			"net_idx=%q, app_idx=%q, node=%q",
+			"Node %4.4x AppKey status %s",
+			net_idx, app_idx, src,
+			src, mesh_status_str(data[0]));
+
 		if (data[0] != MESH_STATUS_SUCCESS &&
 				data[0] != MESH_STATUS_IDX_ALREADY_STORED &&
 				node_app_key_delete(node, net_idx, app_idx))
@@ -142,6 +154,12 @@ static bool client_msg_recvd(uint16_t src, uint8_t *data,
 		net_idx = get_le16(data + 1) & 0xfff;
 
 		bt_shell_printf("\tNetKey %3.3x\n", net_idx);
+
+		config_emit_new_status("netkey", -data[0],
+			"net_idx=%q, node=%q",
+			"Node %4.4x NetKey status %s",
+			net_idx, src,
+			src, mesh_status_str(data[0]));
 
 		if (data[0] != MESH_STATUS_SUCCESS &&
 				data[0] != MESH_STATUS_IDX_ALREADY_STORED &&
@@ -165,6 +183,12 @@ static bool client_msg_recvd(uint16_t src, uint8_t *data,
 
 		bt_shell_printf("AppIdx\t\t%3.3x\n ", app_idx);
 
+		config_emit_new_status("bind", -data[0],
+			"element_addr=%q, mod_id=%q, app_idx=%q",
+			"Node %4.4x Model App status %s",
+			addr, mod_id, app_idx,
+			src, mesh_status_str(data[0]));
+
 		if (data[0] == MESH_STATUS_SUCCESS &&
 			node_add_binding(node, addr - src, mod_id, app_idx))
 			prov_db_add_binding(node, addr - src, mod_id, app_idx);
@@ -177,6 +201,11 @@ static bool client_msg_recvd(uint16_t src, uint8_t *data,
 				"Node Identity state 0x%02x status %s\n",
 				get_le16(data + 1), data[3],
 				mesh_status_str(data[0]));
+
+		config_emit_new_status("identity", -data[0],
+			"",
+			"Network index 0x%04x Node Identity state 0x%02x status %s",
+			get_le16(data + 1), data[3], mesh_status_str(data[0]));
 		break;
 
 	case OP_CONFIG_BEACON_STATUS:
@@ -184,6 +213,11 @@ static bool client_msg_recvd(uint16_t src, uint8_t *data,
 			return true;
 		bt_shell_printf("Node %4.4x Config Beacon Status 0x%02x\n",
 				src, data[0]);
+
+		config_emit_new_status("beacon", -data[0],
+			"",
+			"Node %4.4x Config Beacon Status 0x%02x",
+			src, data[0]);
 		break;
 
 	case OP_CONFIG_RELAY_STATUS:
@@ -192,6 +226,11 @@ static bool client_msg_recvd(uint16_t src, uint8_t *data,
 		bt_shell_printf("Node %4.4x Relay state 0x%02x"
 				" count %d steps %d\n",
 				src, data[0], data[1]>>5, data[1] & 0x1f);
+
+		config_emit_new_status("relay", 0,
+			"node=%q, state=%q, count=%i, steps=%i",
+			"",
+			src, data[0], data[1]>>5, data[1] & 0x1f);
 		break;
 
 	case OP_CONFIG_PROXY_STATUS:
@@ -199,12 +238,23 @@ static bool client_msg_recvd(uint16_t src, uint8_t *data,
 			return true;
 		bt_shell_printf("Node %4.4x Proxy state 0x%02x\n",
 				src, data[0]);
+
+		config_emit_new_status("proxy", 0,
+			"node=%q, state=%q",
+			"",
+			src, data[0]);
 		break;
 
 	case OP_CONFIG_DEFAULT_TTL_STATUS:
 		if (len != 1)
 			return true;
 		bt_shell_printf("Node %4.4x Default TTL %d\n", src, data[0]);
+
+		config_emit_new_status("ttl", 0,
+			"node=%q, ttl=%i",
+			"",
+			src, data[0]);
+
 		if (node_set_default_ttl (node, data[0]))
 			prov_db_node_set_ttl(node, data[0]);
 		break;
@@ -216,8 +266,15 @@ static bool client_msg_recvd(uint16_t src, uint8_t *data,
 		bt_shell_printf("\nNode %4.4x Publication status %s\n",
 				src, mesh_status_str(data[0]));
 
-		if (data[0] != MESH_STATUS_SUCCESS)
+		if (data[0] != MESH_STATUS_SUCCESS) {
+			config_emit_new_status("pub", -data[0],
+				"node=%q",
+				"Node %4.4x Publication status %s",
+				src,
+				src, mesh_status_str(data[0]));
 			return true;
+		}
+
 
 		ele_addr = get_le16(data + 1);
 
@@ -230,19 +287,23 @@ static bool client_msg_recvd(uint16_t src, uint8_t *data,
 		pub.ttl = data[7];
 		pub.period = data[8];
 		n = (data[8] & 0x3f);
+		int period_ms = 0;
 		bt_shell_printf("Pub Addr\t%04x\n", pub.u.addr16);
 		switch (data[8] >> 6) {
 		case 0:
 			bt_shell_printf("Period\t\t%d ms\n", n * 100);
+			period_ms = n * 100;
 			break;
 		case 2:
 			n *= 10;
 			/* fall through */
 		case 1:
 			bt_shell_printf("Period\t\t%d sec\n", n);
+			period_ms = n * 1000;
 			break;
 		case 3:
 			bt_shell_printf("Period\t\t%d min\n", n * 10);
+			period_ms = n * 10 * 60 * 1000;
 			break;
 		}
 
@@ -251,6 +312,16 @@ static bool client_msg_recvd(uint16_t src, uint8_t *data,
 		bt_shell_printf("Rexmit steps\t%d\n", data[9] & 0x1f);
 
 		ele_idx = ele_addr - node_get_primary(node);
+
+			config_emit_new_status("pub", -data[0],
+				"node=%q, ele_idx=%i, ele_addr=%q, pub_addr=%q, "
+				"period=%i, period_unit=%s, "
+				"retransmit_count=%i, retransmit_steps=%i",
+				"Node %4.4x Publication status %s",
+				node_get_primary(node), ele_idx, ele_addr, pub.u.addr16,
+				period_ms, "ms",
+				data[9] >> 5, data[9] & 0x1f,
+				src, mesh_status_str(data[0]));
 
 		/* Local configuration is saved by server */
 		if (node == node_get_local_node())
@@ -266,8 +337,14 @@ static bool client_msg_recvd(uint16_t src, uint8_t *data,
 		bt_shell_printf("\nNode %4.4x Subscription status %s\n",
 				src, mesh_status_str(data[0]));
 
-		if (data[0] != MESH_STATUS_SUCCESS)
+		if (data[0] != MESH_STATUS_SUCCESS) {
+			config_emit_new_status("sub-add", -data[0],
+				"node=%q",
+				"Node %4.4x Subscription status %s",
+				src,
+				src, mesh_status_str(data[0]));
 			return true;
+		}
 
 		ele_addr = get_le16(data + 1);
 		addr = get_le16(data + 3);
@@ -278,6 +355,12 @@ static bool client_msg_recvd(uint16_t src, uint8_t *data,
 		mod_id = print_mod_id(data + 5, (len == 9) ? true : false);
 
 		bt_shell_printf("Subscr Addr\t%4.4x\n", addr);
+
+		config_emit_new_status("sub-add", -data[0],
+				"node=%q, ele_idx=%i, ele_addr=%q, sub_addr=%q",
+				"Node %4.4x Subscription status %s",
+				node_get_primary(node), ele_idx, ele_addr, addr,
+				src, mesh_status_str(data[0]));
 
 		/* Save subscriptions in node and database */
 		if (node_add_subscription(node, ele_idx, mod_id, addr))
@@ -295,10 +378,34 @@ static bool client_msg_recvd(uint16_t src, uint8_t *data,
 
 		bt_shell_printf("Element Addr\t%4.4x\n", get_le16(data + 1));
 		bt_shell_printf("Model ID\t%4.4x\n", get_le16(data + 3));
+		ele_addr = get_le16(data + 1);
+		mod_id = get_le16(data + 3);
+		ele_idx = ele_addr - node_get_primary(node);
 
-		for (i = 5; i < len; i += 2)
+		memset(val_list, sizeof(val_list), 0);
+		if(len > 5) {
+			val_list[0] = '[';
+			c_current = 1;
+		}
+
+		for (i = 5; i < len; i += 2) {
 			bt_shell_printf("Subscr Addr\t%4.4x\n",
 					get_le16(data + i));
+			c_len = snprintf(&val_list[c_current], sizeof(val_list), " %4.4x,", get_le16(data + i));
+			c_current += c_len;
+		}
+
+		if(len > 5) {
+			val_list[c_current - 1] = ']';
+			val_list[c_current] = '\0';
+		}
+
+		config_emit_new_status("sub-get", -data[0],
+				"node=%q, ele_idx=%i, ele_addr=%q, sub_list=%s",
+				"Node %4.4x Subscription List status %s",
+				node_get_primary(node), ele_idx, ele_addr, val_list,
+				src, mesh_status_str(data[0]));
+
 		break;
 
 	/* Per Mesh Profile 4.3.2.50 */
@@ -312,10 +419,34 @@ static bool client_msg_recvd(uint16_t src, uint8_t *data,
 
 		bt_shell_printf("Element Addr\t%4.4x\n", get_le16(data + 1));
 		bt_shell_printf("Model ID\t%4.4x\n", get_le16(data + 3));
+		ele_addr = get_le16(data + 1);
+		mod_id = get_le16(data + 3);
+		ele_idx = ele_addr - node_get_primary(node);
 
-		for (i = 5; i < len; i += 2)
+		memset(val_list, sizeof(val_list), 0);
+		if(len > 5) {
+			val_list[0] = '[';
+			c_current = 1;
+		}
+
+		for (i = 5; i < len; i += 2) {
 			bt_shell_printf("Model AppIdx\t%4.4x\n",
 					get_le16(data + i));
+			c_len = snprintf(&val_list[c_current], sizeof(val_list), " %4.4x,", get_le16(data + i));
+			c_current += c_len;
+		}
+
+		if(len > 5) {
+			val_list[c_current - 1] = ']';
+			val_list[c_current] = '\0';
+		}
+
+		config_emit_new_status("mod-appidx-get", -data[0],
+				"node=%q, ele_idx=%i, ele_addr=%q, app_idx_list=%s",
+				"Node %4.4x Model AppIdx status %s",
+				node_get_primary(node), ele_idx, ele_addr, val_list,
+				src, mesh_status_str(data[0]));
+
 		break;
 
 	/* Per Mesh Profile 4.3.2.63 */
@@ -353,6 +484,12 @@ static bool client_msg_recvd(uint16_t src, uint8_t *data,
 	/* Per Mesh Profile 4.3.2.54 */
 	case OP_NODE_RESET_STATUS:
 		bt_shell_printf("Node %4.4x reset status %s\n",
+				src, mesh_status_str(data[0]));
+
+		config_emit_new_status("node-reset", -data[0],
+				"node=%q",
+				"Node %4.4x reset status %s",
+				src,
 				src, mesh_status_str(data[0]));
 
 		net_release_address(node_get_primary(node),
@@ -432,13 +569,14 @@ static bool config_send(uint8_t *buf, uint16_t len)
 
 }
 
-static void cmd_default(uint32_t opcode)
+static void cmd_default(const char *cmd, uint32_t opcode)
 {
 	uint16_t n;
 	uint8_t msg[32];
 
 	if (IS_UNASSIGNED(target)) {
 		bt_shell_printf("Destination not set\n");
+		config_emit_cmd_failed(cmd, -ENXIO, "Destination not set\n");
 		return bt_shell_noninteractive_quit(EXIT_FAILURE);
 	}
 
@@ -447,6 +585,8 @@ static void cmd_default(uint32_t opcode)
 	if (!config_send(msg, n)) {
 		bt_shell_printf("Failed to send command (opcode 0x%x)\n",
 								opcode);
+		config_emit_cmd_failed(cmd, ENXIO,
+								"Failed to send command (opcode 0x%x)\n", opcode);
 		return bt_shell_noninteractive_quit(EXIT_FAILURE);
 	}
 
@@ -566,6 +706,7 @@ static void cmd_app_key(int argc, char *argv[], uint32_t opcode)
 
 	if (IS_UNASSIGNED(target)) {
 		bt_shell_printf("Destination not set\n");
+		config_emit_cmd_failed(argv[0], -ENXIO, "Destination not set\n");
 		return bt_shell_noninteractive_quit(EXIT_FAILURE);
 	}
 
@@ -634,12 +775,13 @@ static void cmd_appkey_del(int argc, char *argv[])
 	cmd_app_key(argc, argv, OP_APPKEY_DELETE);
 }
 
-static bool verify_config_target(uint32_t dst)
+static bool verify_config_target(const char* cmd, uint32_t dst)
 {
 	struct mesh_node *node;
 
 	if (IS_UNASSIGNED(dst)) {
 		bt_shell_printf("Destination not set\n");
+		config_emit_cmd_failed(cmd, -EINVAL, "Destination not set");
 		return false;
 	}
 
@@ -647,11 +789,15 @@ static bool verify_config_target(uint32_t dst)
 	if (!node) {
 		bt_shell_printf("Node with unicast address %4.4x unknown\n",
 				dst);
+		config_emit_cmd_failed(cmd, -EINVAL, "Node with unicast address %4.4x unknown",
+				dst);
 		return false;
 	}
 
 	if (!node_get_composition(node)) {
 		bt_shell_printf("Node composition for %4.4x unknown\n", dst);
+		config_emit_cmd_failed(cmd, -EINVAL, "Node composition for %4.4x unknown",
+				dst);
 		return false;
 	}
 
@@ -664,7 +810,7 @@ static void cmd_bind(int argc, char *argv[])
 	uint8_t msg[32];
 	int parm_cnt;
 
-	if (!verify_config_target(target))
+	if (!verify_config_target(argv[0], target))
 		return bt_shell_noninteractive_quit(EXIT_FAILURE);
 
 	parm_cnt = read_input_parameters(argc, argv);
@@ -702,7 +848,7 @@ static void cmd_beacon_set(int argc, char *argv[])
 	uint8_t msg[2 + 1];
 	int parm_cnt;
 
-	if (!verify_config_target(target))
+	if (!verify_config_target(argv[0], target))
 		return bt_shell_noninteractive_quit(EXIT_FAILURE);
 
 	n = mesh_opcode_set(OP_CONFIG_BEACON_SET, msg);
@@ -725,7 +871,7 @@ static void cmd_beacon_set(int argc, char *argv[])
 
 static void cmd_beacon_get(int argc, char *argv[])
 {
-	cmd_default(OP_CONFIG_BEACON_GET);
+	cmd_default(argv[0], OP_CONFIG_BEACON_GET);
 }
 
 static void cmd_ident_set(int argc, char *argv[])
@@ -734,7 +880,7 @@ static void cmd_ident_set(int argc, char *argv[])
 	uint8_t msg[2 + 3 + 4];
 	int parm_cnt;
 
-	if (!verify_config_target(target))
+	if (!verify_config_target(argv[0], target))
 		return bt_shell_noninteractive_quit(EXIT_FAILURE);
 
 	n = mesh_opcode_set(OP_NODE_IDENTITY_SET, msg);
@@ -763,7 +909,7 @@ static void cmd_ident_get(int argc, char *argv[])
 	uint8_t msg[2 + 2 + 4];
 	int parm_cnt;
 
-	if (!verify_config_target(target))
+	if (!verify_config_target(argv[0], target))
 		return bt_shell_noninteractive_quit(EXIT_FAILURE);
 
 	n = mesh_opcode_set(OP_NODE_IDENTITY_GET, msg);
@@ -791,7 +937,7 @@ static void cmd_proxy_set(int argc, char *argv[])
 	uint8_t msg[2 + 1];
 	int parm_cnt;
 
-	if (!verify_config_target(target))
+	if (!verify_config_target(argv[0], target))
 		return bt_shell_noninteractive_quit(EXIT_FAILURE);
 
 	n = mesh_opcode_set(OP_CONFIG_PROXY_SET, msg);
@@ -814,7 +960,7 @@ static void cmd_proxy_set(int argc, char *argv[])
 
 static void cmd_proxy_get(int argc, char *argv[])
 {
-	cmd_default(OP_CONFIG_PROXY_GET);
+	cmd_default(argv[0], OP_CONFIG_PROXY_GET);
 }
 
 static void cmd_relay_set(int argc, char *argv[])
@@ -823,7 +969,7 @@ static void cmd_relay_set(int argc, char *argv[])
 	uint8_t msg[2 + 2 + 4];
 	int parm_cnt;
 
-	if (!verify_config_target(target))
+	if (!verify_config_target(argv[0], target))
 		return bt_shell_noninteractive_quit(EXIT_FAILURE);
 
 	n = mesh_opcode_set(OP_CONFIG_RELAY_SET, msg);
@@ -847,7 +993,7 @@ static void cmd_relay_set(int argc, char *argv[])
 
 static void cmd_relay_get(int argc, char *argv[])
 {
-	cmd_default(OP_CONFIG_RELAY_GET);
+	cmd_default(argv[0], OP_CONFIG_RELAY_GET);
 }
 
 static void cmd_ttl_set(int argc, char *argv[])
@@ -886,7 +1032,7 @@ static void cmd_pub_set(int argc, char *argv[])
 	uint8_t msg[32];
 	int parm_cnt;
 
-	if (!verify_config_target(target))
+	if (!verify_config_target(argv[0], target))
 		return bt_shell_noninteractive_quit(EXIT_FAILURE);
 
 	n = mesh_opcode_set(OP_CONFIG_MODEL_PUB_SET, msg);
@@ -1123,7 +1269,7 @@ static void cmd_hb_pub_set(int argc, char *argv[])
 
 static void cmd_hb_pub_get(int argc, char *argv[])
 {
-	cmd_default(OP_CONFIG_HEARTBEAT_PUB_GET);
+	cmd_default(argv[0], OP_CONFIG_HEARTBEAT_PUB_GET);
 }
 
 static void cmd_hb_sub_set(int argc, char *argv[])
@@ -1165,17 +1311,17 @@ static void cmd_hb_sub_set(int argc, char *argv[])
 
 static void cmd_hb_sub_get(int argc, char *argv[])
 {
-	cmd_default(OP_CONFIG_HEARTBEAT_SUB_GET);
+	cmd_default(argv[0], OP_CONFIG_HEARTBEAT_SUB_GET);
 }
 
 static void cmd_ttl_get(int argc, char *argv[])
 {
-	cmd_default(OP_CONFIG_DEFAULT_TTL_GET);
+	cmd_default(argv[0], OP_CONFIG_DEFAULT_TTL_GET);
 }
 
 static void cmd_node_reset(int argc, char *argv[])
 {
-	cmd_default(OP_NODE_RESET);
+	cmd_default(argv[0], OP_NODE_RESET);
 }
 
 static const struct bt_shell_menu cfg_menu = {

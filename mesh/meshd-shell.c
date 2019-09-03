@@ -151,6 +151,11 @@ static const GDBusMethodTable shell_methods[] = {
 	{ }
 };
 
+static const GDBusSignalTable shell_signals[] = {
+	{ GDBUS_SIGNAL(MESHCTLD_SIGNAL_CMD_EXEC_DONE, GDBUS_ARGS({ "result", "a{sv}" })) },
+	{ }
+};
+
 int meshd_shell_register()
 {
 	gboolean status;
@@ -159,8 +164,8 @@ int meshd_shell_register()
 	dbus_conn = meshd_get_dbus_connection();
 
 	status = g_dbus_register_interface(dbus_conn,
-		MESHCTLD_OBJECT_PATH_MENU, MESHCTLD_DBUS_MESH_INTERFACE,
-		shell_methods, NULL,
+		MESHCTLD_OBJECT_PATH_SHELL, MESHCTLD_DBUS_MESH_INTERFACE,
+		shell_methods, shell_signals,
 		NULL, NULL, NULL);
 
 	if(!status) return -EINVAL;
