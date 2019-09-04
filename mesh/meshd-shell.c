@@ -152,7 +152,7 @@ static const GDBusMethodTable shell_methods[] = {
 };
 
 static const GDBusSignalTable shell_signals[] = {
-	{ GDBUS_SIGNAL(MESHCTLD_SIGNAL_CMD_EXEC_DONE, GDBUS_ARGS({ "result", "a{sv}" })) },
+	{ GDBUS_SIGNAL(MESHCTLD_SIGNAL_CMD_EXECUTING, GDBUS_ARGS({ "result", "a{sv}" })) },
 	{ }
 };
 

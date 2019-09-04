@@ -9,14 +9,12 @@
 #define MESHCTLD_OBJECT_PATH_CONFIG "/org/embest/config"
 
 #define MESHCTLD_SIGNAL_UNPROVISIONED_DEVICE_DISCOVERED  "unprovisioned_device_discovered"
-#define MESHCTLD_SIGNAL_REQUEST_KEY "request_key"
-#define MESHCTLD_SIGNAL_PROVISION_DONE "provision_done"
-#define MESHCTLD_SIGNAL_CONNECT_DONE "connect_done"
-#define MESHCTLD_SIGNAL_CONNECTION_LOST "connection_lost"
+#define MESHCTLD_SIGNAL_PROVISIONING "provisioning"
+#define MESHCTLD_SIGNAL_CONNECTING "connecting"
 
 #define MESHCTLD_SIGNAL_CONFIG_STATUS "status"
 
-#define MESHCTLD_SIGNAL_CMD_EXEC_DONE "cmd_exec_done"
+#define MESHCTLD_SIGNAL_CMD_EXECUTING "executing"
 
 extern int meshd_connect_dbus(void);
 extern void meshd_disconnected_dbus(DBusConnection *conn, void *data);

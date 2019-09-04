@@ -29,13 +29,17 @@
 #include <stdlib.h>
 #include <stdbool.h>
 #include <inttypes.h>
+#include <dbus/dbus.h>
 
 #include <glib.h>
 
 #include <lib/bluetooth.h>
 
+#include "gdbus/gdbus.h"
 #include "src/shared/shell.h"
 #include "mesh/util.h"
+#include "mesh/dbus-server.h"
+#include "mesh/meshd-config.h"
 #include "mesh/meshd-prov.h"
 #include "mesh/agent.h"
 
@@ -158,15 +162,15 @@ bool agent_input_request(oob_type_t type, uint16_t max_len, agent_input_cb cb,
 
 	switch (type) {
 	case HEXADECIMAL:
-		prov_emit_request_key("HEX", max_len);
+		prov_emit_provisioning_request_key("HEX", max_len);
 		result = request_hexadecimal(max_len);
 		break;
 	case DECIMAL:
-		prov_emit_request_key("DECIMAL", max_len);
+		prov_emit_provisioning_request_key("DECIMAL", max_len);
 		result = request_decimal(max_len);
 		break;
 	case ASCII:
-		prov_emit_request_key("ASCII", max_len);
+		prov_emit_provisioning_request_key("ASCII", max_len);
 		result = request_ascii(max_len);
 		break;
 	case NONE:
