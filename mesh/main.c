@@ -1878,7 +1878,7 @@ static void cmd_print_mesh(int argc, char *argv[])
 }
 
 static const struct bt_shell_menu main_menu = {
-	.name = "main",
+	.name = "provisioner",
 	.entries = {
 	{ "list",         NULL,       cmd_list, "List available controllers"},
 	{ "show",         "[ctrl]",   cmd_show, "Controller information"},
@@ -1888,14 +1888,14 @@ static const struct bt_shell_menu main_menu = {
 	{ "info",         "[dev]",    cmd_info, "Device information"},
 	{ "connect",      "[net_idx] [dst]", cmd_connect,
 				"Connect to mesh network or node on network"},
-	{ "discover-unprovisioned", "<on/off>", cmd_scan_unprovisioned,
+	{ "discover_unprovisioned", "<on/off>", cmd_scan_unprovisioned,
 					"Look for devices to provision" },
 	{ "provision",    "<uuid>",   cmd_start_prov, "Initiate provisioning"},
 	{ "power",        "<on/off>", cmd_power, "Set controller power" },
 	{ "disconnect",   "[dev]",    cmd_disconn, "Disconnect device"},
-	{ "mesh-info",    NULL,       cmd_print_mesh,
+	{ "mesh_info",    NULL,       cmd_print_mesh,
 					"Mesh networkinfo (provisioner)" },
-	{ "local-info",    NULL,      cmd_print_local, "Local mesh node info" },
+	{ "local_info",    NULL,      cmd_print_local, "Local mesh node info" },
 	{ } },
 };
 
@@ -1937,6 +1937,8 @@ int main(int argc, char *argv[])
 	bt_shell_init(argc, argv, &opt);
 	bt_shell_set_menu(&main_menu);
 	bt_shell_set_prompt(PROMPT_OFF);
+
+	bt_shell_set_menu_exec_invalid_cmd_callback(shell_emit_menu_exec_invalid_cmd);
 
 	if (!mesh_config_dir) {
 		bt_shell_printf("Local config directory not provided.\n");

@@ -4,19 +4,19 @@
 #define MESHCTLD_DBUS_MESH_INTERFACE	"org.embest.MeshInterface"
 #define MESHCTLD_DBUS_ERROR_INTERFACE	"org.embest.Error"
 
-#define MESHCTLD_OBJECT_PATH_PROVISIONER "/org/embest/Provisioner"
-#define MESHCTLD_OBJECT_PATH_SHELL "/org/embest/Shell"
-#define MESHCTLD_OBJECT_PATH_CONFIG "/org/embest/Config"
+#define MESHCTLD_OBJECT_PATH_PROVISIONER "/org/embest/provisioner"
+#define MESHCTLD_OBJECT_PATH_SHELL "/org/embest/shell"
+#define MESHCTLD_OBJECT_PATH_CONFIG "/org/embest/config"
 
-#define MESHCTLD_SIGNAL_UNPROVISIONED_DEVICE_DISCOVERED  "UnprovisionedDeviceDiscovered"
-#define MESHCTLD_SIGNAL_REQUEST_KEY "RequestKey"
-#define MESHCTLD_SIGNAL_PROVISION_DONE "ProvisionDone"
-#define MESHCTLD_SIGNAL_CONNECT_DONE "ConnectDone"
-#define MESHCTLD_SIGNAL_CONNECTION_LOST "ConnectionLost"
+#define MESHCTLD_SIGNAL_UNPROVISIONED_DEVICE_DISCOVERED  "unprovisioned_device_discovered"
+#define MESHCTLD_SIGNAL_REQUEST_KEY "request_key"
+#define MESHCTLD_SIGNAL_PROVISION_DONE "provision_done"
+#define MESHCTLD_SIGNAL_CONNECT_DONE "connect_done"
+#define MESHCTLD_SIGNAL_CONNECTION_LOST "connection_lost"
 
 #define MESHCTLD_SIGNAL_CONFIG_STATUS "status"
 
-#define MESHCTLD_SIGNAL_CMD_EXEC_DONE "CmdExecDone"
+#define MESHCTLD_SIGNAL_CMD_EXEC_DONE "cmd_exec_done"
 
 extern int meshd_connect_dbus(void);
 extern void meshd_disconnected_dbus(DBusConnection *conn, void *data);

@@ -101,3 +101,5 @@ int bt_shell_manual_input_fmt(const char *fmt, ...);
 
 const struct bt_shell_menu *bt_shell_current_menu();
 const struct queue *bt_shell_get_submenus();
+
+void bt_shell_set_menu_exec_invalid_cmd_callback(bt_shell_menu_cb_t callback);

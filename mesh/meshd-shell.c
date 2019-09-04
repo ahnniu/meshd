@@ -125,25 +125,25 @@ static DBusMessage *exec_cmd(DBusConnection *conn,
 
 static const GDBusMethodTable shell_methods[] = {
 	{
-		GDBUS_METHOD("MenuList",
+		GDBUS_METHOD("menu_list",
 		NULL,
 		GDBUS_ARGS({ "name", "as" }),
 		exec_menu_list)
 	},
 	{
-		GDBUS_METHOD("Menu",
+		GDBUS_METHOD("menu",
 		GDBUS_ARGS({ "name", "s" }),
 		NULL,
 		exec_menu_submenu)
 	},
 	{
-		GDBUS_METHOD("MenuBack",
+		GDBUS_METHOD("menu_back",
 		NULL,
 		NULL,
 		exec_menu_back)
 	},
 	{
-		GDBUS_METHOD("Exec",
+		GDBUS_METHOD("exec",
 		GDBUS_ARGS({ "cmd", "s" }),
 		NULL,
 		exec_cmd)
@@ -171,4 +171,21 @@ int meshd_shell_register()
 	if(!status) return -EINVAL;
 
 	return 0;
+}
+
+void shell_emit_menu_exec_invalid_cmd(int argc, char *argv[])
+{
+	const struct bt_shell_menu *current;
+	char object_path[50];
+	const char *method_name;
+
+
+	method_name = argv[0];
+
+	current = bt_shell_current_menu();
+	memset(object_path, sizeof(object_path), 0);
+	snprintf(object_path, sizeof(object_path), "/org/embest/%s", current->name);
+	shell_emit_cmd_failed(object_path, method_name, -ENOENT,
+			"Invalid command in menu %s",
+			current->name);
 }

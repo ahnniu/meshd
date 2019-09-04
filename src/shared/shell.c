@@ -81,6 +81,8 @@ static struct {
 	struct queue *envs;
 } data;
 
+static bt_shell_menu_cb_t menu_exec_invalid_cmd_callback = NULL;
+
 static void shell_print_menu(void);
 
 static void cmd_version(int argc, char *argv[])
@@ -447,6 +449,9 @@ static int shell_exec(int argc, char *argv[])
 				print_text(COLOR_HIGHLIGHT,
 					"Invalid command in menu %s: %s",
 					data.menu->name , argv[0]);
+				if(menu_exec_invalid_cmd_callback) {
+					menu_exec_invalid_cmd_callback(argc, argv);
+				}
 				shell_print_help();
 			}
 		}
@@ -1256,4 +1261,9 @@ const struct bt_shell_menu *bt_shell_current_menu()
 const struct queue *bt_shell_get_submenus()
 {
 	return data.submenus;
+}
+
+void bt_shell_set_menu_exec_invalid_cmd_callback(bt_shell_menu_cb_t callback)
+{
+	menu_exec_invalid_cmd_callback = callback;
 }

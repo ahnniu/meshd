@@ -40,7 +40,7 @@ static DBusMessage *exec_discover_unprovisioned(DBusConnection *conn,
 		dbus_message_get_member(msg),
 		onoff);
 
-	error = bt_shell_manual_input_fmt("discover-unprovisioned %s", onoff);
+	error = bt_shell_manual_input_fmt("discover_unprovisioned %s", onoff);
 
 	reply = dbus_message_new_method_return(msg);
 
@@ -146,31 +146,31 @@ static DBusMessage *exec_start_disconnect(DBusConnection *conn,
 
 static const GDBusMethodTable prov_methods[] = {
 	{
-		GDBUS_METHOD("DiscoverUnprovisioned",
+		GDBUS_METHOD("discover_unprovisioned",
 			GDBUS_ARGS({ "onoff", "s" }),
 			NULL,
 			exec_discover_unprovisioned)
 	},
 	{
-		GDBUS_METHOD("Provision",
+		GDBUS_METHOD("provision",
 			GDBUS_ARGS({ "uuid", "s" }),
 			NULL,
 			exec_start_prov)
 	},
 	{
-		GDBUS_METHOD("EnterKey",
+		GDBUS_METHOD("enter_key",
 			GDBUS_ARGS({ "key", "s" }),
 			NULL,
 			exec_enter_key)
 	},
 	{
-		GDBUS_METHOD("Connect",
+		GDBUS_METHOD("connect",
 			GDBUS_ARGS({ "net_idx", "q" }),
 			NULL,
 			exec_start_connect)
 	},
 	{
-		GDBUS_METHOD("Disconnect",
+		GDBUS_METHOD("disconnect",
 			NULL,
 			NULL,
 			exec_start_disconnect)
