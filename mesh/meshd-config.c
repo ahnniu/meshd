@@ -300,6 +300,44 @@ static DBusMessage *exec_config_sub_add(DBusConnection *conn,
 	return reply;
 }
 
+static DBusMessage *exec_config_composition_get(DBusConnection *conn,
+					DBusMessage *msg, void *user_data)
+{
+	DBusMessage *reply;
+	int error;
+
+	bt_shell_printf("[dbus][%s][%s] %s.%s()\n",
+		dbus_message_get_destination(msg),
+		dbus_message_get_path(msg),
+		dbus_message_get_interface(msg),
+		dbus_message_get_member(msg));
+
+	error = bt_shell_manual_input_fmt("composition-get");
+
+	reply = dbus_message_new_method_return(msg);
+
+	return reply;
+}
+
+static DBusMessage *exec_config_node_reset(DBusConnection *conn,
+					DBusMessage *msg, void *user_data)
+{
+	DBusMessage *reply;
+	int error;
+
+	bt_shell_printf("[dbus][%s][%s] %s.%s()\n",
+		dbus_message_get_destination(msg),
+		dbus_message_get_path(msg),
+		dbus_message_get_interface(msg),
+		dbus_message_get_member(msg));
+
+	error = bt_shell_manual_input_fmt("node-reset");
+
+	reply = dbus_message_new_method_return(msg);
+
+	return reply;
+}
+
 static const GDBusMethodTable config_methods[] = {
 	{
 		GDBUS_METHOD("target",
@@ -336,6 +374,18 @@ static const GDBusMethodTable config_methods[] = {
 		GDBUS_ARGS({ "info", "a{sv}" }),
 		NULL,
 		exec_config_sub_add)
+	},
+	{
+		GDBUS_METHOD("composition_get",
+		NULL,
+		NULL,
+		exec_config_composition_get)
+	},
+	{
+		GDBUS_METHOD("node_reset",
+		NULL,
+		NULL,
+		exec_config_node_reset)
 	},
 	{ }
 };

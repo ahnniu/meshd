@@ -69,6 +69,25 @@ static uint32_t print_mod_id(uint8_t *data, bool vid)
 	}
 	return mod_id;
 }
+static void config_emit_composition(struct mesh_node *node, const char* json_str)
+{
+	uint16_t primary;
+
+	primary = node_get_primary(node);
+
+	if(json_str) {
+		config_emit_new_status("composition", 0,
+			"node=%q, composition=%s",
+			"",
+			primary, json_str);
+	} else {
+		config_emit_new_status("composition", -ENOENT,
+			"node=%q, composition=%s",
+			"Composition data not present",
+			primary, "");
+	}
+
+}
 
 static bool client_msg_recvd(uint16_t src, uint8_t *data,
 				uint16_t len, void *user_data)
@@ -117,7 +136,7 @@ static bool client_msg_recvd(uint16_t src, uint8_t *data,
 		}
 
 		if (node_get_composition(node))
-			prov_db_print_node_composition(node);
+			prov_db_print_node_composition(node, config_emit_composition);
 		break;
 
 	case OP_APPKEY_STATUS:
@@ -601,13 +620,16 @@ static void cmd_composition_get(int argc, char *argv[])
 
 	if (IS_UNASSIGNED(target)) {
 		bt_shell_printf("Destination not set\n");
+		config_emit_cmd_failed(argv[0], -ENXIO, "Destination not set");
 		return bt_shell_noninteractive_quit(EXIT_FAILURE);
 	}
 
 	node = node_find_by_addr(target);
 
-	if (!node)
+	if (!node) {
+		config_emit_cmd_failed(argv[0], -ENXIO, "Node %4.4x not found", target);
 		return bt_shell_noninteractive_quit(EXIT_FAILURE);
+	}
 
 	n = mesh_opcode_set(OP_DEV_COMP_GET, msg);
 
@@ -616,6 +638,7 @@ static void cmd_composition_get(int argc, char *argv[])
 
 	if (!config_send(msg, n)) {
 		bt_shell_printf("Failed to send \"GET NODE COMPOSITION\"\n");
+		config_emit_cmd_failed(argv[0], -EFAULT, "Failed to send command");
 		return bt_shell_noninteractive_quit(EXIT_FAILURE);
 	}
 
@@ -632,6 +655,7 @@ static void cmd_net_key(int argc, char *argv[], uint32_t opcode)
 
 	if (IS_UNASSIGNED(target)) {
 		bt_shell_printf("Destination not set\n");
+		config_emit_cmd_failed(argv[0], -ENXIO, "Destination not set");
 		return bt_shell_noninteractive_quit(EXIT_FAILURE);
 	}
 
@@ -639,12 +663,14 @@ static void cmd_net_key(int argc, char *argv[], uint32_t opcode)
 
 	if (read_input_parameters(argc, argv) != 1) {
 		bt_shell_printf("Bad arguments %s\n", argv[1]);
+		config_emit_cmd_failed(argv[0], -EINVAL, "Bad arguments %s", argv[1]);
 		return bt_shell_noninteractive_quit(EXIT_FAILURE);
 	}
 
 	node = node_find_by_addr(target);
 	if (!node) {
 		bt_shell_printf("Node %4.4x\n not found", target);
+		config_emit_cmd_failed(argv[0], -ENXIO, "Node %4.4x not found", target);
 		return bt_shell_noninteractive_quit(EXIT_FAILURE);
 	}
 
@@ -655,6 +681,8 @@ static void cmd_net_key(int argc, char *argv[], uint32_t opcode)
 		key = keys_net_key_get(net_idx, true);
 		if (!key) {
 			bt_shell_printf("NetKey with index %4.4x not found\n",
+								net_idx);
+			config_emit_cmd_failed(argv[0], -EINVAL, "NetKey with index %4.4x not found",
 								net_idx);
 			return bt_shell_noninteractive_quit(EXIT_FAILURE);
 		}
@@ -669,6 +697,7 @@ static void cmd_net_key(int argc, char *argv[], uint32_t opcode)
 	if (!config_send(msg, n)) {
 		bt_shell_printf("Failed to send \"%s NET KEY\"\n",
 				opcode == OP_NETKEY_ADD ? "ADD" : "DEL");
+		config_emit_cmd_failed(argv[0], -EFAULT, "Failed to send cmd");
 		return bt_shell_noninteractive_quit(EXIT_FAILURE);
 	}
 
@@ -712,12 +741,14 @@ static void cmd_app_key(int argc, char *argv[], uint32_t opcode)
 
 	if (read_input_parameters(argc, argv) != 1) {
 		bt_shell_printf("Bad arguments %s\n", argv[1]);
+		config_emit_cmd_failed(argv[0], -EINVAL, "Bad arguments %s", argv[1]);
 		return bt_shell_noninteractive_quit(EXIT_FAILURE);
 	}
 
 	node = node_find_by_addr(target);
 	if (!node) {
 		bt_shell_printf("Node %4.4x\n not found", target);
+		config_emit_cmd_failed(argv[0], -ENXIO, "Node %4.4x not found", target);
 		return bt_shell_noninteractive_quit(EXIT_FAILURE);
 	}
 
@@ -727,6 +758,7 @@ static void cmd_app_key(int argc, char *argv[], uint32_t opcode)
 	net_idx = keys_app_key_get_bound(app_idx);
 	if (net_idx == NET_IDX_INVALID) {
 		bt_shell_printf("AppKey with index %4.4x not found\n", app_idx);
+		config_emit_cmd_failed(argv[0], -ENXIO, "AppKey with index %4.4x not found", app_idx);
 		return bt_shell_noninteractive_quit(EXIT_FAILURE);
 	}
 
@@ -739,6 +771,7 @@ static void cmd_app_key(int argc, char *argv[], uint32_t opcode)
 		key = keys_app_key_get(app_idx, true);
 		if (!key) {
 			bt_shell_printf("AppKey %4.4x not found\n", net_idx);
+			config_emit_cmd_failed(argv[0], -ENXIO, "AppKey %4.4x not found\n", net_idx);
 			return;
 		}
 
@@ -749,6 +782,7 @@ static void cmd_app_key(int argc, char *argv[], uint32_t opcode)
 	if (!config_send(msg, n)) {
 		bt_shell_printf("Failed to send \"ADD %s KEY\"\n",
 				opcode == OP_APPKEY_ADD ? "ADD" : "DEL");
+		config_emit_cmd_failed(argv[0], -EFAULT, "Failed to send command");
 		return bt_shell_noninteractive_quit(EXIT_FAILURE);
 	}
 
@@ -816,6 +850,7 @@ static void cmd_bind(int argc, char *argv[])
 	parm_cnt = read_input_parameters(argc, argv);
 	if (parm_cnt != 3 && parm_cnt != 4) {
 		bt_shell_printf("Bad arguments\n");
+		config_emit_cmd_failed(argv[0], -EINVAL, "Bad arguments");
 		return bt_shell_noninteractive_quit(EXIT_FAILURE);
 	}
 
@@ -836,6 +871,7 @@ static void cmd_bind(int argc, char *argv[])
 
 	if (!config_send(msg, n)) {
 		bt_shell_printf("Failed to send \"MODEL APP BIND\"\n");
+		config_emit_cmd_failed(argv[0], -EFAULT, "Failed to send command");
 		return bt_shell_noninteractive_quit(EXIT_FAILURE);
 	}
 
@@ -856,6 +892,7 @@ static void cmd_beacon_set(int argc, char *argv[])
 	parm_cnt = read_input_parameters(argc, argv);
 	if (parm_cnt != 1) {
 		bt_shell_printf("bad arguments\n");
+		config_emit_cmd_failed(argv[0], -EINVAL, "Bad arguments");
 		return bt_shell_noninteractive_quit(EXIT_FAILURE);
 	}
 
@@ -863,6 +900,7 @@ static void cmd_beacon_set(int argc, char *argv[])
 
 	if (!config_send(msg, n)) {
 		bt_shell_printf("Failed to send \"SET BEACON\"\n");
+		config_emit_cmd_failed(argv[0], -EFAULT, "Failed to send command");
 		return;
 	}
 
@@ -888,6 +926,7 @@ static void cmd_ident_set(int argc, char *argv[])
 	parm_cnt = read_input_parameters(argc, argv);
 	if (parm_cnt != 2) {
 		bt_shell_printf("bad arguments\n");
+		config_emit_cmd_failed(argv[0], -EINVAL, "Bad arguments");
 		return bt_shell_noninteractive_quit(EXIT_FAILURE);
 	}
 
@@ -897,6 +936,7 @@ static void cmd_ident_set(int argc, char *argv[])
 
 	if (!config_send(msg, n)) {
 		bt_shell_printf("Failed to send \"SET IDENTITY\"\n");
+		config_emit_cmd_failed(argv[0], -EFAULT, "Failed to send command");
 		return;
 	}
 
@@ -917,6 +957,7 @@ static void cmd_ident_get(int argc, char *argv[])
 	parm_cnt = read_input_parameters(argc, argv);
 	if (parm_cnt != 1) {
 		bt_shell_printf("bad arguments\n");
+		config_emit_cmd_failed(argv[0], -EINVAL, "Bad arguments");
 		return bt_shell_noninteractive_quit(EXIT_FAILURE);
 	}
 
@@ -925,6 +966,7 @@ static void cmd_ident_get(int argc, char *argv[])
 
 	if (!config_send(msg, n)) {
 		bt_shell_printf("Failed to send \"GET IDENTITY\"\n");
+		config_emit_cmd_failed(argv[0], -EFAULT, "Failed to send command");
 		return bt_shell_noninteractive_quit(EXIT_FAILURE);
 	}
 
@@ -945,6 +987,7 @@ static void cmd_proxy_set(int argc, char *argv[])
 	parm_cnt = read_input_parameters(argc, argv);
 	if (parm_cnt != 1) {
 		bt_shell_printf("bad arguments");
+		config_emit_cmd_failed(argv[0], -EINVAL, "Bad arguments");
 		return bt_shell_noninteractive_quit(EXIT_FAILURE);
 	}
 
@@ -952,6 +995,7 @@ static void cmd_proxy_set(int argc, char *argv[])
 
 	if (!config_send(msg, n)) {
 		bt_shell_printf("Failed to send \"SET PROXY\"\n");
+		config_emit_cmd_failed(argv[0], -EFAULT, "Failed to send command");
 		return bt_shell_noninteractive_quit(EXIT_FAILURE);
 	}
 
@@ -977,6 +1021,7 @@ static void cmd_relay_set(int argc, char *argv[])
 	parm_cnt = read_input_parameters(argc, argv);
 	if (parm_cnt != 3) {
 		bt_shell_printf("bad arguments\n");
+		config_emit_cmd_failed(argv[0], -EINVAL, "Bad arguments");
 		return bt_shell_noninteractive_quit(EXIT_FAILURE);
 	}
 
@@ -985,6 +1030,7 @@ static void cmd_relay_set(int argc, char *argv[])
 
 	if (!config_send(msg, n)) {
 		bt_shell_printf("Failed to send \"SET RELAY\"\n");
+		config_emit_cmd_failed(argv[0], -EFAULT, "Failed to send command");
 		return bt_shell_noninteractive_quit(EXIT_FAILURE);
 	}
 
@@ -1005,6 +1051,7 @@ static void cmd_ttl_set(int argc, char *argv[])
 
 	if (IS_UNASSIGNED(target)) {
 		bt_shell_printf("Destination not set\n");
+		config_emit_cmd_failed(argv[0], -ENXIO, "Destination not set");
 		return bt_shell_noninteractive_quit(EXIT_FAILURE);
 	}
 
@@ -1020,6 +1067,7 @@ static void cmd_ttl_set(int argc, char *argv[])
 
 	if (!config_send(msg, n)) {
 		bt_shell_printf("Failed to send \"SET_DEFAULT TTL\"\n");
+		config_emit_cmd_failed(argv[0], -EFAULT, "Failed to send command");
 		return bt_shell_noninteractive_quit(EXIT_FAILURE);
 	}
 
@@ -1040,6 +1088,7 @@ static void cmd_pub_set(int argc, char *argv[])
 	parm_cnt = read_input_parameters(argc, argv);
 	if (parm_cnt != 6 && parm_cnt != 7) {
 		bt_shell_printf("Bad arguments\n");
+		config_emit_cmd_failed(argv[0], -EINVAL, "Bad arguments");
 		return bt_shell_noninteractive_quit(EXIT_FAILURE);
 	}
 
@@ -1069,6 +1118,7 @@ static void cmd_pub_set(int argc, char *argv[])
 
 	if (!config_send(msg, n)) {
 		bt_shell_printf("Failed to send \"SET MODEL PUBLICATION\"\n");
+		config_emit_cmd_failed(argv[0], -EFAULT, "Failed to send command");
 		return bt_shell_noninteractive_quit(EXIT_FAILURE);
 	}
 
@@ -1083,6 +1133,7 @@ static void cmd_pub_get(int argc, char *argv[])
 
 	if (IS_UNASSIGNED(target)) {
 		bt_shell_printf("Destination not set\n");
+		config_emit_cmd_failed(argv[0], -ENXIO, "Destination not set");
 		return bt_shell_noninteractive_quit(EXIT_FAILURE);
 	}
 
@@ -1091,6 +1142,7 @@ static void cmd_pub_get(int argc, char *argv[])
 	parm_cnt = read_input_parameters(argc, argv);
 	if (parm_cnt != 2 && parm_cnt != 3) {
 		bt_shell_printf("Bad arguments: %s\n", argv[1]);
+		config_emit_cmd_failed(argv[0], -EINVAL, "Bad arguments");
 		return bt_shell_noninteractive_quit(EXIT_FAILURE);
 	}
 
@@ -1109,6 +1161,7 @@ static void cmd_pub_get(int argc, char *argv[])
 
 	if (!config_send(msg, n)) {
 		bt_shell_printf("Failed to send \"GET MODEL PUBLICATION\"\n");
+		config_emit_cmd_failed(argv[0], -EFAULT, "Failed to send command");
 		return bt_shell_noninteractive_quit(EXIT_FAILURE);
 	}
 
@@ -1123,6 +1176,7 @@ static void cmd_sub_add(int argc, char *argv[])
 
 	if (IS_UNASSIGNED(target)) {
 		bt_shell_printf("Destination not set\n");
+		config_emit_cmd_failed(argv[0], -ENXIO, "Destination not set");
 		return bt_shell_noninteractive_quit(EXIT_FAILURE);
 	}
 
@@ -1131,6 +1185,7 @@ static void cmd_sub_add(int argc, char *argv[])
 	parm_cnt = read_input_parameters(argc, argv);
 	if (parm_cnt != 3) {
 		bt_shell_printf("Bad arguments: %s\n", argv[1]);
+		config_emit_cmd_failed(argv[0], -EINVAL, "Bad arguments");
 		return bt_shell_noninteractive_quit(EXIT_FAILURE);
 	}
 
@@ -1147,6 +1202,7 @@ static void cmd_sub_add(int argc, char *argv[])
 
 	if (!config_send(msg, n)) {
 		bt_shell_printf("Failed to send \"ADD SUBSCRIPTION\"\n");
+		config_emit_cmd_failed(argv[0], -EFAULT, "Failed to send command");
 		return bt_shell_noninteractive_quit(EXIT_FAILURE);
 	}
 
@@ -1161,6 +1217,7 @@ static void cmd_sub_get(int argc, char *argv[])
 
 	if (IS_UNASSIGNED(target)) {
 		bt_shell_printf("Destination not set\n");
+		config_emit_cmd_failed(argv[0], -ENXIO, "Destination not set");
 		return bt_shell_noninteractive_quit(EXIT_FAILURE);
 	}
 
@@ -1169,6 +1226,7 @@ static void cmd_sub_get(int argc, char *argv[])
 	parm_cnt = read_input_parameters(argc, argv);
 	if (parm_cnt != 2) {
 		bt_shell_printf("Bad arguments: %s\n", argv[1]);
+		config_emit_cmd_failed(argv[0], -EINVAL, "Bad arguments");
 		return bt_shell_noninteractive_quit(EXIT_FAILURE);
 	}
 
@@ -1182,6 +1240,7 @@ static void cmd_sub_get(int argc, char *argv[])
 
 	if (!config_send(msg, n)) {
 		bt_shell_printf("Failed to send \"GET SUB GET\"\n");
+		config_emit_cmd_failed(argv[0], -EFAULT, "Failed to send command");
 		return bt_shell_noninteractive_quit(EXIT_FAILURE);
 	}
 
@@ -1196,6 +1255,7 @@ static void cmd_mod_appidx_get(int argc, char *argv[])
 
 	if (IS_UNASSIGNED(target)) {
 		bt_shell_printf("Destination not set\n");
+		config_emit_cmd_failed(argv[0], -ENXIO, "Destination not set");
 		return bt_shell_noninteractive_quit(EXIT_FAILURE);
 	}
 
@@ -1204,6 +1264,7 @@ static void cmd_mod_appidx_get(int argc, char *argv[])
 	parm_cnt = read_input_parameters(argc, argv);
 	if (parm_cnt != 2) {
 		bt_shell_printf("Bad arguments: %s\n", argv[1]);
+		config_emit_cmd_failed(argv[0], -EINVAL, "Bad arguments: %s", argv[1]);
 		return bt_shell_noninteractive_quit(EXIT_FAILURE);
 	}
 
@@ -1217,6 +1278,7 @@ static void cmd_mod_appidx_get(int argc, char *argv[])
 
 	if (!config_send(msg, n)) {
 		bt_shell_printf("Failed to send \"GET APP GET\"\n");
+		config_emit_cmd_failed(argv[0], -EFAULT, "Failed to send command");
 		return bt_shell_noninteractive_quit(EXIT_FAILURE);
 	}
 
@@ -1231,6 +1293,7 @@ static void cmd_hb_pub_set(int argc, char *argv[])
 
 	if (IS_UNASSIGNED(target)) {
 		bt_shell_printf("Destination not set\n");
+		config_emit_cmd_failed(argv[0], -ENXIO, "Destination not set");
 		return bt_shell_noninteractive_quit(EXIT_FAILURE);
 	}
 
@@ -1239,6 +1302,7 @@ static void cmd_hb_pub_set(int argc, char *argv[])
 	parm_cnt = read_input_parameters(argc, argv);
 	if (parm_cnt != 6) {
 		bt_shell_printf("Bad arguments: %s\n", argv[1]);
+		config_emit_cmd_failed(argv[0], -EINVAL, "Bad arguments");
 		return bt_shell_noninteractive_quit(EXIT_FAILURE);
 	}
 
@@ -1261,6 +1325,7 @@ static void cmd_hb_pub_set(int argc, char *argv[])
 
 	if (!config_send(msg, n)) {
 		bt_shell_printf("Failed to send \"SET HEARTBEAT PUBLISH\"\n");
+		config_emit_cmd_failed(argv[0], -EFAULT, "Failed to send command");
 		return bt_shell_noninteractive_quit(EXIT_FAILURE);
 	}
 
@@ -1280,6 +1345,7 @@ static void cmd_hb_sub_set(int argc, char *argv[])
 
 	if (IS_UNASSIGNED(target)) {
 		bt_shell_printf("Destination not set\n");
+		config_emit_cmd_failed(argv[0], -ENXIO, "Destination not set");
 		return bt_shell_noninteractive_quit(EXIT_FAILURE);
 	}
 
@@ -1288,6 +1354,7 @@ static void cmd_hb_sub_set(int argc, char *argv[])
 	parm_cnt = read_input_parameters(argc, argv);
 	if (parm_cnt != 3) {
 		bt_shell_printf("Bad arguments: %s\n", argv[1]);
+		config_emit_cmd_failed(argv[0], -EINVAL, "Bad arguments");
 		return bt_shell_noninteractive_quit(EXIT_FAILURE);
 	}
 
@@ -1303,6 +1370,7 @@ static void cmd_hb_sub_set(int argc, char *argv[])
 
 	if (!config_send(msg, n)) {
 		bt_shell_printf("Failed to send \"SET HEARTBEAT SUBSCRIBE\"\n");
+		config_emit_cmd_failed(argv[0], -EFAULT, "Failed to send command");
 		return bt_shell_noninteractive_quit(EXIT_FAILURE);
 	}
 

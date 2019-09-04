@@ -598,7 +598,7 @@ static json_object *find_node_by_primary(json_object *jmain, uint16_t primary)
 
 }
 
-void prov_db_print_node_composition(struct mesh_node *node)
+void prov_db_print_node_composition(struct mesh_node *node, composition_get_callback do_something)
 {
 	char *in_str;
 	const char *comp_str;
@@ -639,12 +639,16 @@ void prov_db_print_node_composition(struct mesh_node *node)
 	res = true;
 
 done:
-	if (res)
+	if (res) {
 		bt_shell_printf("\tComposition data for node %4.4x %s\n",
 							primary, comp_str);
-	else
+		do_something(node, comp_str);
+	} else {
 		bt_shell_printf("\tComposition data for node %4.4x not present\n",
 								primary);
+		do_something(node, NULL);
+	}
+
 	g_free(in_str);
 
 	if (jmain)
