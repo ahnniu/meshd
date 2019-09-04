@@ -86,9 +86,9 @@ void meshd_emit_signal_fmt(const char *object_path, const char* signal_name, con
 
 	dbus_conn = meshd_get_dbus_connection();
 
-	signal = dbus_message_new_signal(MESHCTLD_OBJECT_PATH_SHELL,
+	signal = dbus_message_new_signal(object_path,
 					MESHCTLD_DBUS_MESH_INTERFACE,
-					MESHCTLD_SIGNAL_CMD_EXEC_DONE);
+					signal_name);
 	if (signal == NULL)
 		return;
 
