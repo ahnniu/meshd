@@ -180,7 +180,7 @@ static const GDBusMethodTable prov_methods[] = {
 
 static const GDBusSignalTable prov_signals[] = {
 	{ GDBUS_SIGNAL(MESHCTLD_SIGNAL_UNPROVISIONED_DEVICE_DISCOVERED,
-			GDBUS_ARGS({ "uuid", "s" }))
+			GDBUS_ARGS({ "device", "a{sv}" }))
 	},
 	{ GDBUS_SIGNAL(MESHCTLD_SIGNAL_REQUEST_KEY, NULL) },
 	{ GDBUS_SIGNAL(MESHCTLD_SIGNAL_PROVISION_DONE, GDBUS_ARGS({ "result", "a{sv}" })) },
@@ -188,29 +188,6 @@ static const GDBusSignalTable prov_signals[] = {
 	{ GDBUS_SIGNAL(MESHCTLD_SIGNAL_CONNECTION_LOST, NULL) },
 	{ }
 };
-
-// sudo dbus-monitor --system "type='signal',sender='org.embest',interface='org.embest.MeshInterface'"
-void prov_emit_new_device_discovered(char *uuid)
-{
-	DBusConnection *dbus_conn;
-	DBusMessage *signal;
-	DBusMessageIter iter, array;
-	char *arg_uuid = uuid;
-
-	dbus_conn = meshd_get_dbus_connection();
-
-	signal = dbus_message_new_signal(MESHCTLD_OBJECT_PATH_PROVISIONER,
-					MESHCTLD_DBUS_MESH_INTERFACE,
-					MESHCTLD_SIGNAL_UNPROVISIONED_DEVICE_DISCOVERED);
-	if (signal == NULL)
-		return;
-
-	dbus_message_iter_init_append(signal, &iter);
-	dbus_message_iter_append_basic(&iter, DBUS_TYPE_STRING, &arg_uuid);
-
-	dbus_connection_send(dbus_conn, signal, NULL);
-	dbus_message_unref(signal);
-}
 
 void prov_emit_request_key(const char* type, uint16_t max_len)
 {

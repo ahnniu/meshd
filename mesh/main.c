@@ -357,8 +357,10 @@ static struct mesh_device *find_device_by_uuid(GList *source, uint8_t uuid[16])
 	return NULL;
 }
 
-static void print_prov_service(struct prov_svc_data *prov_data)
+static void print_prov_service(GDBusProxy *proxy, struct prov_svc_data *prov_data)
 {
+	DBusMessageIter iter;
+	const char *name;
 	const char *prefix = "\t\t";
 	char txt_uuid[16 * 2 + 1];
 	int i;
@@ -372,7 +374,12 @@ static void print_prov_service(struct prov_svc_data *prov_data)
 	bt_shell_printf("%s\tDevice UUID: %s\n", prefix, txt_uuid);
 	bt_shell_printf("%s\tOOB: %4.4x\n", prefix, prov_data->oob);
 
-	prov_emit_new_device_discovered(txt_uuid);
+	if (g_dbus_proxy_get_property(proxy, "Alias", &iter) == TRUE)
+		dbus_message_iter_get_basic(&iter, &name);
+	else
+		name = "unknown";
+
+	prov_emit_new_device_discovered(txt_uuid, name, prov_data->oob);
 }
 
 static bool parse_prov_service_data(const char *uuid, uint8_t *data, int len,
@@ -681,7 +688,7 @@ static void update_device_info(GDBusProxy *proxy)
 
 		/* Display provisioning service once per discovery session */
 		if (discovering && (!dev || !dev->hide))
-						print_prov_service(&prov_data);
+						print_prov_service(proxy, &prov_data);
 
 		if (dev) {
 			dev->proxy = proxy;
