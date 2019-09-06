@@ -11,6 +11,8 @@
 #define MESHCTLD_SIGNAL_UNPROVISIONED_DEVICE_DISCOVERED  "unprovisioned_device_discovered"
 #define MESHCTLD_SIGNAL_PROVISIONING "provisioning"
 #define MESHCTLD_SIGNAL_CONNECTING "connecting"
+#define MESHCTLD_SIGNAL_PROV_DB_INFO "db"
+
 
 #define MESHCTLD_SIGNAL_CONFIG_STATUS "status"
 

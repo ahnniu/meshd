@@ -124,6 +124,16 @@ struct {
 	uint8_t type;
 } connection;
 
+static void prov_emit_db_mesh_info(const char* info)
+{
+	prov_emit_db_info("mesh", info);
+}
+
+static void prov_emit_db_local_info(const char* info)
+{
+	prov_emit_db_info("local", info);
+}
+
 static bool service_is_mesh(GDBusProxy *proxy, const char *target_uuid)
 {
 	DBusMessageIter iter;
@@ -649,7 +659,12 @@ static void connect_reply(DBusMessage *message, void *user_data)
 
 	if (dbus_set_error_from_message(&error, message) == TRUE) {
 		bt_shell_printf("Failed to connect: %s\n", error.name);
-		prov_emit_connecting_lost("Failed to connect: %s\n", error.name);
+
+		if(connection.type == CONN_TYPE_PROVISION) {
+			prov_emit_provisioning_connect(-ENOENT, "Failed to connect: %s\n", error.name);
+		} else {
+			prov_emit_connecting_lost("Failed to connect: %s\n", error.name);
+		}
 		dbus_error_free(&error);
 		set_connected_device(NULL);
 		return bt_shell_noninteractive_quit(EXIT_FAILURE);
@@ -663,6 +678,8 @@ static void connect_reply(DBusMessage *message, void *user_data)
 		prov_emit_identity_connected(connection.unicast);
 	} else if (connection.type == CONN_TYPE_NETWORK) {
 		prov_emit_net_connected(connection.net_idx);
+	} else if(connection.type == CONN_TYPE_PROVISION) {
+		prov_emit_provisioning_connect(0, "");
 	}
 
 	return bt_shell_noninteractive_quit(EXIT_SUCCESS);
@@ -1872,7 +1889,7 @@ static void cmd_start_prov(int argc, char *argv[])
 
 static void cmd_print_mesh(int argc, char *argv[])
 {
-	if (!prov_db_show(mesh_prov_db_filename)) {
+	if (!prov_db_show(mesh_prov_db_filename, prov_emit_db_mesh_info)) {
 		bt_shell_printf("Unavailable\n");
 		return bt_shell_noninteractive_quit(EXIT_FAILURE);
 	}
@@ -1882,7 +1899,7 @@ static void cmd_print_mesh(int argc, char *argv[])
 
  static void cmd_print_local(int argc, char *argv[])
 {
-	if (!prov_db_show(mesh_local_config_filename)) {
+	if (!prov_db_show(mesh_local_config_filename, prov_emit_db_local_info)) {
 		bt_shell_printf("Unavailable\n");
 		return bt_shell_noninteractive_quit(EXIT_FAILURE);
 	}

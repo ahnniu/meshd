@@ -7,6 +7,12 @@
 					"uuid=%s, name=%s, oob=%q;", \
 					uuid, name, oob)
 
+#define prov_emit_db_info(name, info) \
+				meshd_emit_signal_fmt(MESHCTLD_OBJECT_PATH_PROVISIONER, \
+					MESHCTLD_SIGNAL_PROV_DB_INFO, \
+					"name=%s, info=%s;", \
+					name, info)
+
 #define prov_emit_provisioning(action, dict, error, ...) \
 					meshd_emit_signal_fmt(MESHCTLD_OBJECT_PATH_PROVISIONER, MESHCTLD_SIGNAL_PROVISIONING, \
 						"action=%s, " \
@@ -15,6 +21,13 @@
 						error, \
 						action, \
 						## __VA_ARGS__)
+
+#define prov_emit_provisioning_connect(result, error, ...) \
+				prov_emit_provisioning("connect", \
+					"status=%i", \
+					error, \
+					result, \
+					## __VA_ARGS__)
 
 #define prov_emit_provisioning_request_key(type, size) \
 				prov_emit_provisioning("request_key", \
@@ -67,7 +80,7 @@
 					net_idx)
 
 #define prov_emit_identity_connected(unicast) \
-				prov_emit_type_connected("net", \
+				prov_emit_type_connected("identity", \
 					"unicast=%q", \
 					"", \
 					unicast)

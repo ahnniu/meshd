@@ -22,8 +22,10 @@
  */
 
 typedef void (*composition_get_callback)(struct mesh_node *node, const char* json_str);
+typedef void (*file_show_callback)(const char *file_content);
 
-bool prov_db_show(const char *filename);
+
+bool prov_db_show(const char *filename, file_show_callback do_something);
 bool prov_db_read(const char *filename);
 bool prov_db_read_local_node(const char *filename, bool provisioner);
 bool prov_db_add_new_node(struct mesh_node *node);

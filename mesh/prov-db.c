@@ -1472,7 +1472,7 @@ done:
 	return true;
 }
 
-bool prov_db_show(const char *filename)
+bool prov_db_show(const char *filename, file_show_callback do_something)
 {
 	char *str;
 
@@ -1481,6 +1481,9 @@ bool prov_db_show(const char *filename)
 		return false;
 
 	bt_shell_printf("%s\n", str);
+	if(do_something) {
+		do_something(str);
+	}
 	g_free(str);
 	return true;
 }

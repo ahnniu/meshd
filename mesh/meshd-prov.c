@@ -144,6 +144,25 @@ static DBusMessage *exec_start_disconnect(DBusConnection *conn,
 	return reply;
 }
 
+static DBusMessage *exec_start_mesh_info(DBusConnection *conn,
+					DBusMessage *msg, void *user_data)
+{
+	DBusMessage *reply;
+	int error;
+
+	bt_shell_printf("[dbus][%s][%s] %s.%s()\n",
+		dbus_message_get_destination(msg),
+		dbus_message_get_path(msg),
+		dbus_message_get_interface(msg),
+		dbus_message_get_member(msg));
+
+	error = bt_shell_manual_input_fmt("mesh_info");
+
+	reply = dbus_message_new_method_return(msg);
+
+	return reply;
+}
+
 static const GDBusMethodTable prov_methods[] = {
 	{
 		GDBUS_METHOD("discover_unprovisioned",
@@ -174,6 +193,12 @@ static const GDBusMethodTable prov_methods[] = {
 			NULL,
 			NULL,
 			exec_start_disconnect)
+	},
+	{
+		GDBUS_METHOD("mesh_info",
+			NULL,
+			NULL,
+			exec_start_mesh_info)
 	},
 	{ }
 };
