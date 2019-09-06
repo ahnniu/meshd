@@ -55,4 +55,24 @@ TBD
 
 ## How to use
 
-TBD
+### Start the meshd
+
+```bash
+$ cd /path/to/meshd
+$ sudo mesh/meshctl --config mesh
+```
+
+### DBus configuration
+
+```bash
+$ cd /path/to/meshd
+$ sudo cp mesh/conf/embest.conf /etc/dbus-1/system.d/
+$ sudo reboot
+```
+
+### DBus interface
+
+- [DBus Strategy](mesh/doc/dbus-strategy.md)
+- [DBus Provisioner](mesh/doc/dbus-prov.md)
+- [DBus Config](mesh/doc/dbus-config.md)
+
