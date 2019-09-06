@@ -661,7 +661,7 @@ static void connect_reply(DBusMessage *message, void *user_data)
 		bt_shell_printf("Failed to connect: %s\n", error.name);
 
 		if(connection.type == CONN_TYPE_PROVISION) {
-			prov_emit_provisioning_connect(-ENOENT, "Failed to connect: %s\n", error.name);
+			prov_emit_cmd_failed("provision", -ENOENT, "Failed to connect: %s\n", error.name);
 		} else {
 			prov_emit_connecting_lost("Failed to connect: %s\n", error.name);
 		}
@@ -678,8 +678,6 @@ static void connect_reply(DBusMessage *message, void *user_data)
 		prov_emit_identity_connected(connection.unicast);
 	} else if (connection.type == CONN_TYPE_NETWORK) {
 		prov_emit_net_connected(connection.net_idx);
-	} else if(connection.type == CONN_TYPE_PROVISION) {
-		prov_emit_provisioning_connect(0, "");
 	}
 
 	return bt_shell_noninteractive_quit(EXIT_SUCCESS);
