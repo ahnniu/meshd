@@ -39,7 +39,7 @@ static DBusMessage *exec_config_target(DBusConnection *conn,
 		dbus_message_get_member(msg),
 		unicast);
 
-	error = bt_shell_manual_input_fmt("target %4.4x", unicast);
+	error = bt_shell_manual_input_fmt("config.target %4.4x", unicast);
 
 	reply = dbus_message_new_method_return(msg);
 
@@ -65,7 +65,7 @@ static DBusMessage *exec_config_appkey_add(DBusConnection *conn,
 		dbus_message_get_member(msg),
 		app_key_idx);
 
-	error = bt_shell_manual_input_fmt("appkey_add %4.4x", app_key_idx);
+	error = bt_shell_manual_input_fmt("config.appkey_add %4.4x", app_key_idx);
 
 	reply = dbus_message_new_method_return(msg);
 
@@ -91,7 +91,7 @@ static DBusMessage *exec_config_appkey_del(DBusConnection *conn,
 		dbus_message_get_member(msg),
 		app_key_idx);
 
-	error = bt_shell_manual_input_fmt("appkey_del %4.4x", app_key_idx);
+	error = bt_shell_manual_input_fmt("config.appkey_del %4.4x", app_key_idx);
 
 	reply = dbus_message_new_method_return(msg);
 
@@ -146,7 +146,7 @@ static DBusMessage *exec_config_bind(DBusConnection *conn,
 		dbus_message_get_member(msg),
 		ele_idx, app_idx, mod_id);
 
-	error = bt_shell_manual_input_fmt("bind %d %d %4.4x", ele_idx, app_idx, mod_id);
+	error = bt_shell_manual_input_fmt("config.bind %d %d %4.4x", ele_idx, app_idx, mod_id);
 
 	reply = dbus_message_new_method_return(msg);
 
@@ -230,7 +230,7 @@ static DBusMessage *exec_config_pub_set(DBusConnection *conn,
 		period_step = 0;
 	}
 
-	error = bt_shell_manual_input_fmt("pub_set %4.4x %4.4x %d %d %d %4.4x",
+	error = bt_shell_manual_input_fmt("config.pub_set %4.4x %4.4x %d %d %d %4.4x",
 						ele_addr, pub_addr, app_idx,
 						((period_step & 0x03) << 6) | (period_res & 0x3F),
 						((retransmit_count & 0x07) << 5) | (retransmit_steps & 0x1F),
@@ -292,7 +292,7 @@ static DBusMessage *exec_config_sub_add(DBusConnection *conn,
 		dbus_message_get_member(msg),
 		ele_addr, sub_addr, mod_id);
 
-	error = bt_shell_manual_input_fmt("sub_add %4.4x %4.4x %4.4x",
+	error = bt_shell_manual_input_fmt("config.sub_add %4.4x %4.4x %4.4x",
 						ele_addr, sub_addr, mod_id);
 
 	reply = dbus_message_new_method_return(msg);
@@ -312,7 +312,7 @@ static DBusMessage *exec_config_composition_get(DBusConnection *conn,
 		dbus_message_get_interface(msg),
 		dbus_message_get_member(msg));
 
-	error = bt_shell_manual_input_fmt("composition_get");
+	error = bt_shell_manual_input_fmt("config.composition_get");
 
 	reply = dbus_message_new_method_return(msg);
 
@@ -331,7 +331,7 @@ static DBusMessage *exec_config_node_reset(DBusConnection *conn,
 		dbus_message_get_interface(msg),
 		dbus_message_get_member(msg));
 
-	error = bt_shell_manual_input_fmt("node_reset");
+	error = bt_shell_manual_input_fmt("config.node_reset");
 
 	reply = dbus_message_new_method_return(msg);
 
