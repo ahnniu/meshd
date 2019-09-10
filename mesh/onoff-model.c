@@ -49,6 +49,8 @@
 #include "mesh/onoff-model.h"
 
 #include "mesh/dbus-server.h"
+#include "mesh/meshd-shell.h"
+#include "mesh/meshd-onoff-model.h"
 
 static uint8_t trans_id;
 static uint16_t onoff_app_idx = APP_IDX_INVALID;
@@ -195,6 +197,7 @@ static void cmd_get_status(int argc, char *argv[])
 
 	if ((read_input_parameters(argc, argv) != 1)) {
 		bt_shell_printf("Bad arguments\n");
+		onoff_emit_cmd_failed(argv[0], -EINVAL, "Bad arguments");
 		return bt_shell_noninteractive_quit(EXIT_FAILURE);
 	}
 
@@ -202,6 +205,7 @@ static void cmd_get_status(int argc, char *argv[])
 
 	if (IS_UNASSIGNED(target)) {
 		bt_shell_printf("Invalid target address\n");
+		onoff_emit_cmd_failed(argv[0], -EINVAL, "Invalid target address");
 		return bt_shell_noninteractive_quit(EXIT_FAILURE);
 	}
 
@@ -210,6 +214,7 @@ static void cmd_get_status(int argc, char *argv[])
 
 		if (!node) {
 			bt_shell_printf("Invalid target address\n");
+			onoff_emit_cmd_failed(argv[0], -EINVAL, "Invalid target address");
 			return bt_shell_noninteractive_quit(EXIT_FAILURE);
 		}
 	}
@@ -218,6 +223,7 @@ static void cmd_get_status(int argc, char *argv[])
 
 	if (!send_cmd(target, msg, n)) {
 		bt_shell_printf("Failed to send \"GENERIC ON/OFF GET\"\n");
+		onoff_emit_cmd_failed(argv[0], -EFAULT, "Failed to send GENERIC ON/OFF GET");
 		return bt_shell_noninteractive_quit(EXIT_FAILURE);
 	}
 
@@ -234,6 +240,7 @@ static void cmd_set(int argc, char *argv[])
 	if ((read_input_parameters(argc, argv) != 2) &&
 					parms[1] != 0 && parms[1] != 1) {
 		bt_shell_printf("Bad arguments: Expecting \"0\" or \"1\"\n");
+		onoff_emit_cmd_failed(argv[0], -EINVAL, "Bad arguments");
 		return bt_shell_noninteractive_quit(EXIT_FAILURE);
 	}
 
@@ -241,6 +248,7 @@ static void cmd_set(int argc, char *argv[])
 
 	if (IS_UNASSIGNED(target)) {
 		bt_shell_printf("Invalid target address\n");
+		onoff_emit_cmd_failed(argv[0], -EINVAL, "Invalid target address");
 		return bt_shell_noninteractive_quit(EXIT_FAILURE);
 	}
 
@@ -249,6 +257,7 @@ static void cmd_set(int argc, char *argv[])
 
 		if (!node) {
 			bt_shell_printf("Invalid target address\n");
+			onoff_emit_cmd_failed(argv[0], -EINVAL, "Invalid target address");
 			return bt_shell_noninteractive_quit(EXIT_FAILURE);
 		}
 	}
@@ -259,6 +268,7 @@ static void cmd_set(int argc, char *argv[])
 
 	if (!send_cmd(target, msg, n)) {
 		bt_shell_printf("Failed to send \"GENERIC ON/OFF SET\"\n");
+		onoff_emit_cmd_failed(argv[0], -EFAULT, "Failed to send GENERIC ON/OFF SET");
 		return bt_shell_noninteractive_quit(EXIT_FAILURE);
 	}
 
@@ -271,7 +281,7 @@ static const struct bt_shell_menu onoff_menu = {
 	.entries = {
 	{"get",			"<ele_addr>",				cmd_get_status,
 						"Get ON/OFF status"},
-	{"onoff",		"<addr> <0/1>",			cmd_set,
+	{"set",		"<addr> <0/1>",			cmd_set,
 						"Send \"SET ON/OFF\" command"},
 	{} },
 };

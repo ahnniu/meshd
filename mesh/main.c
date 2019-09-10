@@ -64,6 +64,7 @@
 #include "mesh/meshd-prov.h"
 #include "mesh/meshd-shell.h"
 #include "mesh/meshd-config.h"
+#include "mesh/meshd-onoff-model.h"
 
 /* String display constants */
 #define COLORED_NEW	COLOR_GREEN "NEW" COLOR_OFF
@@ -2072,6 +2073,12 @@ int main(int argc, char *argv[])
 
 	if(meshd_config_register() < 0) {
 		g_printerr("D-bus Config object register failed\n");
+		status = EXIT_FAILURE;
+		goto quit;
+	}
+
+	if(meshd_onoff_register() < 0) {
+		g_printerr("D-bus Onoff object register failed\n");
 		status = EXIT_FAILURE;
 		goto quit;
 	}

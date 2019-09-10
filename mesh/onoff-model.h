@@ -29,15 +29,5 @@
 #define OP_GENERIC_ONOFF_SET_UNACK		0x8203
 #define OP_GENERIC_ONOFF_STATUS			0x8204
 
-#define onoff_emit_new_state_with_remaining(src, dst, state, remaining_time) \
-				meshd_emit_signal_fmt(MESHCTLD_OBJECT_PATH_MODEL_ONOFF, "status", \
-				"src=%q, dst=%q, state=%q, remaining=%i;", \
-				src, dst, state, remaining_time)
-
-#define onoff_emit_new_state(src, dst, state) \
-				meshd_emit_signal_fmt(MESHCTLD_OBJECT_PATH_MODEL_ONOFF, "status", \
-				"src=%q, dst=%q, state=%q;", \
-				src, dst, state)
-
 void onoff_set_node(const char *args);
 bool onoff_client_init(uint8_t ele);
