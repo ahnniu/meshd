@@ -559,11 +559,17 @@ static void cmd_node_set(int argc, char *argv[])
 		bt_shell_printf("Bad unicast address %s: "
 				"expected format 4 digit hex\n", argv[1]);
 		target = UNASSIGNED_ADDRESS;
+		config_emit_cmd_failed(argv[0], -EINVAL, "Bad unicast address %s", argv[1]);
 		return bt_shell_noninteractive_quit(EXIT_FAILURE);
 	} else {
 		bt_shell_printf("Configuring node %4.4x\n", dst);
 		target = dst;
 		set_menu_prompt("config", argv[1]);
+
+		config_emit_new_status(argv[0], 0,
+			"",
+			"Configuring node %4.4x", dst);
+
 		return bt_shell_noninteractive_quit(EXIT_SUCCESS);
 	}
 }
