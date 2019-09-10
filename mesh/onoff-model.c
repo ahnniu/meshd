@@ -48,8 +48,13 @@
 #include "mesh/util.h"
 #include "mesh/onoff-model.h"
 
+#include "mesh/dbus-server.h"
+
 static uint8_t trans_id;
 static uint16_t onoff_app_idx = APP_IDX_INVALID;
+
+static bool client_onoff_status_msg_recvd(uint16_t src, uint16_t dst,
+ 						uint8_t *data, uint16_t len, void *user_data);
 
 static int client_bind(uint16_t app_idx, int action)
 {
@@ -68,7 +73,7 @@ static int client_bind(uint16_t app_idx, int action)
 	return MESH_STATUS_SUCCESS;
 }
 
-static void print_remaining_time(uint8_t remaining_time)
+static int print_remaining_time(uint8_t remaining_time)
 {
 	uint8_t step = (remaining_time & 0xc0) >> 6;
 	uint8_t count = remaining_time & 0x3f;
@@ -104,6 +109,7 @@ static void print_remaining_time(uint8_t remaining_time)
 	bt_shell_printf("\n\t\tRemaining time: %d hrs %d mins %d secs %d"
 			" msecs\n", hours, minutes, secs, msecs);
 
+	return hours * 3600000 + minutes * 60000 + secs * 1000 + msecs;
 }
 
 static bool client_msg_recvd(uint16_t src, uint8_t *data,
@@ -111,6 +117,9 @@ static bool client_msg_recvd(uint16_t src, uint8_t *data,
 {
 	uint32_t opcode;
 	int n;
+	uint16_t local_node_unicast;
+
+	local_node_unicast = node_get_primary(node_get_local_node());
 
 	if (mesh_opcode_get(data, len, &opcode, &n)) {
 		len -= n;
@@ -127,18 +136,8 @@ static bool client_msg_recvd(uint16_t src, uint8_t *data,
 		return false;
 
 	case OP_GENERIC_ONOFF_STATUS:
-		if (len != 1 && len != 3)
-			break;
-
-		bt_shell_printf("Node %4.4x: Off Status present = %s",
-						src, data[0] ? "ON" : "OFF");
-
-		if (len == 3) {
-			bt_shell_printf(", target = %s",
-					data[1] ? "ON" : "OFF");
-			print_remaining_time(data[2]);
-		} else
-			bt_shell_printf("\n");
+		return client_onoff_status_msg_recvd(src, local_node_unicast,
+				data, len, NULL);
 		break;
 	}
 
@@ -287,10 +286,47 @@ static struct mesh_model_ops client_cbs = {
 	NULL
 };
 
+static bool client_onoff_status_msg_recvd(uint16_t src, uint16_t dst,
+ 						uint8_t *data, uint16_t len, void *user_data)
+{
+	uint8_t state;
+	int remaining_ms = -1;
+
+	if (len != 1 && len != 3) {
+		return false;
+	}
+
+	state = data[0];
+	bt_shell_printf("Element %4.4x: Off Status present = %s",
+					src, state ? "ON" : "OFF");
+
+	if (len == 3) {
+		bt_shell_printf(", target = %s",
+				data[1] ? "ON" : "OFF");
+		remaining_ms = print_remaining_time(data[2]);
+	} else
+		bt_shell_printf("\n");
+
+	if(remaining_ms < 0) {
+		onoff_emit_new_state(src, dst, state);
+	} else {
+		onoff_emit_new_state_with_remaining(src, dst, state, remaining_ms);
+	}
+	return true;
+}
+
+static struct mesh_opcode_ops client_onoff_status_cbs = {
+	client_onoff_status_msg_recvd
+};
+
 bool onoff_client_init(uint8_t ele)
 {
 	if (!node_local_model_register(ele, GENERIC_ONOFF_CLIENT_MODEL_ID,
 					&client_cbs, NULL))
+		return false;
+
+	if(!node_remote_opcode_register("Generic OnOff Status", OP_GENERIC_ONOFF_STATUS,
+					&client_onoff_status_cbs, NULL))
 		return false;
 
 	bt_shell_add_submenu(&onoff_menu);

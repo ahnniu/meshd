@@ -83,9 +83,46 @@ struct mesh_node {
 	struct mesh_node_composition *comp;
 };
 
+struct mesh_opcode {
+	const char *name;
+	uint32_t code;
+	struct mesh_opcode_ops cbs;
+	void *user_data;
+};
+
 static GList *nodes;
 
 static struct mesh_node *local_node;
+
+static GList *opcodes;
+
+static int match_opcode_code(const void *a, const void *b)
+{
+	const struct mesh_opcode *opcode = a;
+	uint32_t code = GPOINTER_TO_UINT(b);
+
+	return (opcode->code == code) ? 0 : -1;
+}
+
+static struct mesh_opcode *opcode_find_by_code(uint32_t code)
+{
+	GList *l;
+
+	l = g_list_find_custom(opcodes, GUINT_TO_POINTER(code),
+			match_opcode_code);
+
+	if (l)
+		return l->data;
+	else
+		return NULL;
+}
+
+static void free_opcode_resources(void *data)
+{
+	struct mesh_opcode *opcode = data;
+
+	g_free(opcode);
+}
 
 static int match_node_unicast(const void *a, const void *b)
 {
@@ -554,17 +591,15 @@ static char* group_addr_type_data_to_json(uint32_t id, uint16_t src, uint32_t ds
 
 	return json_data;
 }
+
 static bool deliver_group_addr_type_data(uint16_t src, uint32_t dst,
 				uint16_t app_idx, uint8_t *data, uint16_t len)
 {
 	struct mesh_model *model;
-	char *json_data;
+	struct mesh_opcode *opcode;
 	uint32_t id;
-	uint32_t opcode;
+	uint32_t code;
 	int n;
-
-	bt_shell_printf("Group Addr Msg:"
-		"src = %4.4x, dst = %4.4x \n", src, dst);
 
 	model = find_model_by_pub_addr(dst);
 	if(!model)
@@ -572,17 +607,28 @@ static bool deliver_group_addr_type_data(uint16_t src, uint32_t dst,
 
 	id = model->id & 0xFFFF;
 
-	if (mesh_opcode_get(data, len, &opcode, &n)) {
+	if (mesh_opcode_get(data, len, &code, &n)) {
 		len -= n;
 		data += n;
 	} else
 		return false;
 
-	json_data = group_addr_type_data_to_json(id, src, dst, opcode, data, len);
-	bt_shell_printf("[PubCaptured]:%s\n", json_data);
-	free(json_data);
+	opcode = opcode_find_by_code(code);
 
-	return true;
+	bt_shell_printf("[PubCaptured]: src: %4.4x, dst: %4.4x, opcode: %8.8x "
+			"%s callback registered\n",
+			src, dst, code,
+			opcode ? "with" : "no");
+
+	if(!opcode) {
+		return false;
+	}
+
+	if(opcode->cbs.recv) {
+		return opcode->cbs.recv(src, dst, data, len, opcode->user_data);
+	}
+
+	return false;
 }
 
 void node_local_data_handler(uint16_t src, uint32_t dst,
@@ -986,4 +1032,38 @@ struct mesh_publication *node_model_pub_get(struct mesh_node *node, uint8_t ele,
 		return NULL;
 	else
 		return model->pub;
+}
+
+void node_remote_opcode_cleanup()
+{
+	g_list_free_full(opcodes, free_opcode_resources);
+	opcodes = NULL;
+}
+
+bool node_remote_opcode_register(const char *name, uint32_t code,
+				struct mesh_opcode_ops *ops, void *user_data)
+{
+	struct mesh_opcode *opcode;
+
+	opcode = opcode_find_by_code(code);
+
+	if(opcode) {
+		// Already in list
+		return false;
+	}
+
+	opcode = g_malloc0(sizeof(struct mesh_opcode));
+
+	if(!opcode) {
+		return false;
+	}
+
+	opcode->name = name;
+	opcode->code = code;
+	opcode->cbs = *ops;
+	opcode->user_data = user_data;
+
+	opcodes = g_list_append(opcodes, opcode);
+
+	return true;
 }

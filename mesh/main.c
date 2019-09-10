@@ -2085,6 +2085,8 @@ quit:
 
 	node_cleanup();
 
+	node_remote_opcode_cleanup();
+
 	g_list_free(char_list);
 	g_list_free(service_list);
 	g_list_free_full(ctrl_list, proxy_leak);
