@@ -2,14 +2,16 @@
 #define _MESHD_ONOFF_MODEL_H
 
 #define onoff_emit_new_state_with_remaining(src, dst, state, remaining_time) \
-				meshd_emit_signal_fmt(MESHCTLD_OBJECT_PATH_MODEL_ONOFF, "status", \
-				"src=%q, dst=%q, state=%q, remaining=%i;", \
-				src, dst, state, remaining_time)
+				model_emit_status(MESHCTLD_OBJECT_PATH_MODEL_ONOFF, \
+					GENERIC_ONOFF_SERVER_MODEL_ID, src, dst, \
+					"state=%q, remaining=%i", \
+					state, remaining_time)
 
 #define onoff_emit_new_state(src, dst, state) \
-				meshd_emit_signal_fmt(MESHCTLD_OBJECT_PATH_MODEL_ONOFF, "status", \
-				"src=%q, dst=%q, state=%q;", \
-				src, dst, state)
+				model_emit_status(MESHCTLD_OBJECT_PATH_MODEL_ONOFF, \
+					GENERIC_ONOFF_SERVER_MODEL_ID, src, dst, \
+					"state=%q", \
+					state)
 
 #define onoff_emit_cmd_failed(method, result, error, ...) \
 				shell_emit_cmd_failed(MESHCTLD_OBJECT_PATH_MODEL_ONOFF, \

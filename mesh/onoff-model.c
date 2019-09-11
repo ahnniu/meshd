@@ -50,6 +50,7 @@
 
 #include "mesh/dbus-server.h"
 #include "mesh/meshd-shell.h"
+#include "mesh/meshd-model.h"
 #include "mesh/meshd-onoff-model.h"
 
 static uint8_t trans_id;

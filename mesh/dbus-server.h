@@ -1,12 +1,14 @@
 #ifndef _DBUS_SERVER_H
 #define _DBUS_SERVER_H
 
-#define MESHCTLD_DBUS_MESH_INTERFACE	"org.embest.MeshInterface"
-#define MESHCTLD_DBUS_ERROR_INTERFACE	"org.embest.Error"
+#define MESHCTLD_DBUS_MESH_INTERFACE	"org.embest.mesh.Provisioner"
+#define MESHCTLD_DBUS_MESH_MODEL_INTERFACE	"org.embest.mesh.Model"
+#define MESHCTLD_DBUS_ERROR_INTERFACE	"org.embest.mesh.Error"
 
 #define MESHCTLD_OBJECT_PATH_PROVISIONER "/org/embest/provisioner"
 #define MESHCTLD_OBJECT_PATH_SHELL "/org/embest/shell"
 #define MESHCTLD_OBJECT_PATH_CONFIG "/org/embest/config"
+#define MESHCTLD_OBJECT_PATH_MODEL "/org/embest/model"
 #define MESHCTLD_OBJECT_PATH_MODEL_ONOFF "/org/embest/model/onoff"
 
 #define MESHCTLD_SIGNAL_UNPROVISIONED_DEVICE_DISCOVERED  "unprovisioned_device_discovered"
@@ -16,8 +18,15 @@
 
 
 #define MESHCTLD_SIGNAL_CONFIG_STATUS "status"
-
 #define MESHCTLD_SIGNAL_CMD_EXECUTING "executing"
+
+// org.embest.mesh.Model.status
+#define MESHCTLD_SIGNAL_MESH_MODEL_STATUS "status"
+
+
+#define meshd_emit_signal_fmt(object_path, signal_name, fmt, ...) \
+				meshd_interface_emit_signal_fmt(MESHCTLD_DBUS_MESH_INTERFACE, \
+					object_path, signal_name, fmt, ## __VA_ARGS__)
 
 extern int meshd_connect_dbus(void);
 extern void meshd_disconnected_dbus(DBusConnection *conn, void *data);
@@ -31,6 +40,7 @@ extern DBusMessage *meshd_error_invalid_args_str(DBusMessage *msg, const char *s
  * @brief Emit a dbus signal with format string to generate 'a{sv}' type dbus parameters.
  * The signal should register first.
  *
+ * @param interface the interface name to emit the signal
  * @param object_path the object to emit the signal
  * @param signal_name the signal name
  * @param fmt the format string, for example: "key1=%t, key2=%t. Error messages with %d"
@@ -49,6 +59,7 @@ extern DBusMessage *meshd_error_invalid_args_str(DBusMessage *msg, const char *s
  * 		"status=%i, unicast=%q, name=%s. This is an error message with error code: %d",
  * 		1, 0x0107, -1);
  */
-extern void meshd_emit_signal_fmt(const char *object_path, const char* signal_name, const char *fmt, ...);
+extern void meshd_interface_emit_signal_fmt(const char *interface, const char *object_path,
+							const char* signal_name, const char *fmt, ...);
 
 #endif

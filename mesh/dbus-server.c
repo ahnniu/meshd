@@ -66,7 +66,9 @@ DBusMessage *meshd_error_invalid_args_str(DBusMessage *msg, const char *str)
 					"%s", str);
 }
 
-void meshd_emit_signal_fmt(const char *object_path, const char* signal_name, const char *fmt, ...)
+
+void meshd_interface_emit_signal_fmt(const char *interface, const char *object_path,
+						const char* signal_name, const char *fmt, ...)
 {
 	va_list ap;
 	const char *p;
@@ -80,14 +82,14 @@ void meshd_emit_signal_fmt(const char *object_path, const char* signal_name, con
 	DBusMessage *signal;
 	DBusMessageIter iter, dict;
 
-	if(!object_path || !signal_name) {
+	if(!interface || !object_path || !signal_name) {
 		return;
 	}
 
 	dbus_conn = meshd_get_dbus_connection();
 
 	signal = dbus_message_new_signal(object_path,
-					MESHCTLD_DBUS_MESH_INTERFACE,
+					interface,
 					signal_name);
 	if (signal == NULL)
 		return;
