@@ -103,22 +103,56 @@ static DBusMessage *exec_start_connect(DBusConnection *conn,
 					DBusMessage *msg, void *user_data)
 {
 	DBusMessage *reply;
-	DBusMessageIter iter;
-	dbus_uint16_t next_idx;
+	DBusMessageIter array, dict, entry, variant;
 	int error;
+	int i, array_len, int_value;
+	int variant_type;
+	const char* key;
+	uint16_t net_idx = 0, node_addr = 0;
 
-	if (dbus_message_get_args(msg, NULL, DBUS_TYPE_UINT16, &next_idx,
-			DBUS_TYPE_INVALID) == FALSE)
+	dbus_message_iter_init(msg, &array);
+
+	if(strcmp(dbus_message_iter_get_signature(&array), "a{sv}")) {
 		return meshd_error_invalid_args(msg);
+	}
+	array_len = dbus_message_iter_get_element_count(&array);
+	dbus_message_iter_recurse(&array, &dict);
 
-	bt_shell_printf("[dbus][%s][%s] %s.%s(%d)\n",
+	for(i = 0; i < array_len; i++) {
+		dbus_message_iter_recurse(&dict, &entry);
+		dbus_message_iter_get_basic(&entry, &key);
+		dbus_message_iter_next(&entry);
+		dbus_message_iter_recurse(&entry, &variant);
+		variant_type = dbus_message_iter_get_arg_type(&variant);
+		if(variant_type == DBUS_TYPE_UINT16 || variant_type == DBUS_TYPE_UINT32 ||
+				variant_type == DBUS_TYPE_INT16 || variant_type == DBUS_TYPE_INT32) {
+			dbus_message_iter_get_basic(&variant, &int_value);
+			if(!strcmp(key, "net_idx")) {
+				net_idx = int_value & 0xFFFF;
+			} else if(!strcmp(key, "node_addr")) {
+				node_addr = int_value & 0xFFFF;
+			}
+		}
+		dbus_message_iter_next(&dict);
+	}
+
+	bt_shell_printf("[dbus][%s][%s] %s.%s"
+		"(net_idx = %x, addr = %4.4x)\n",
 		dbus_message_get_destination(msg),
 		dbus_message_get_path(msg),
 		dbus_message_get_interface(msg),
 		dbus_message_get_member(msg),
-		next_idx);
+		net_idx, node_addr);
 
-	error = bt_shell_manual_input_fmt("connect %d", next_idx);
+	if(!node_addr) {
+		// Connect to node to config
+		error = bt_shell_manual_input_fmt("connect %x %4.4x",
+							net_idx, node_addr);
+	} else {
+		// Connect to net
+		error = bt_shell_manual_input_fmt("connect %x",
+							net_idx);
+	}
 
 	reply = dbus_message_new_method_return(msg);
 
@@ -184,7 +218,7 @@ static const GDBusMethodTable prov_methods[] = {
 	},
 	{
 		GDBUS_METHOD("connect",
-			GDBUS_ARGS({ "net_idx", "q" }),
+			GDBUS_ARGS({ "net_idx", "a{sv}" }),
 			NULL,
 			exec_start_connect)
 	},
