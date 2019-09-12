@@ -65,6 +65,7 @@
 #include "mesh/meshd-shell.h"
 #include "mesh/meshd-config.h"
 #include "mesh/meshd-onoff-model.h"
+#include "mesh/foundation-models.h"
 
 /* String display constants */
 #define COLORED_NEW	COLOR_GREEN "NEW" COLOR_OFF
@@ -2046,6 +2047,10 @@ int main(int argc, char *argv[])
 
 	if (!onoff_client_init(PRIMARY_ELEMENT_IDX))
 		g_printerr("Failed to initialize mesh generic On/Off client\n");
+
+	if(!heartbeat_init()) {
+		g_printerr("Failed to initialize mesh heartbeat\n");
+	}
 
 	if (meshd_connect_dbus() < 0) {
 		g_printerr("Unable to get on meshd D-Bus\n");

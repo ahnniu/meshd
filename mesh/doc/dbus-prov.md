@@ -2,9 +2,9 @@
 
 ## DBus Object
 
-| Dest       | Interface                | Object Path            |
-| ---------- | ------------------------ | ---------------------- |
-| org.embest | org.embest.MeshInterface | org/embest/provisioner |
+| Dest       | Interface                   | Object Path            |
+| ---------- | --------------------------- | ---------------------- |
+| org.embest | org.embest.mesh.Provisioner | org/embest/provisioner |
 
 ## DBus Method
 

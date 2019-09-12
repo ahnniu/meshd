@@ -19,6 +19,7 @@
 
 #define MESHCTLD_SIGNAL_CONFIG_STATUS "status"
 #define MESHCTLD_SIGNAL_CMD_EXECUTING "executing"
+#define MESHCTLD_SIGNAL_CONFIG_HEARTBEAT "heartbeat"
 
 // org.embest.mesh.Model.status
 #define MESHCTLD_SIGNAL_MESH_MODEL_STATUS "status"

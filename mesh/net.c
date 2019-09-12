@@ -229,6 +229,8 @@ static GList *virt_addrs = NULL;
 static GList *net_keys = NULL;
 static GList *app_keys = NULL;
 
+static net_mesh_heartbeat_rxed_callback net_mesh_heartbeat_rxed_do_something = NULL;
+
 /* Forward static declarations */
 static void resend_segs(struct mesh_sar_msg *sar);
 
@@ -1426,6 +1428,10 @@ static bool ctl_rxed(uint16_t net_idx, uint32_t iv_index,
 				(feat & MESH_FEATURE_PROXY) ? "proxy " : "",
 				(feat & MESH_FEATURE_FRIEND) ? "friend " : "",
 				(feat & MESH_FEATURE_LPN) ? "lpn" : "");
+
+		if(net_mesh_heartbeat_rxed_do_something) {
+			net_mesh_heartbeat_rxed_do_something(net_idx, ttl, src, dst, feat);
+		}
 		return true;
 	}
 
@@ -2214,4 +2220,9 @@ bool net_set_seq_num(uint32_t seq_num)
 uint32_t net_get_seq_num()
 {
 	return net.seq_num;
+}
+
+void net_mesh_heartbeat_set_rxed_callback(net_mesh_heartbeat_rxed_callback callback)
+{
+	net_mesh_heartbeat_rxed_do_something = callback;
 }

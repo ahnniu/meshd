@@ -4,9 +4,9 @@ Config a node such as publication set, subscribe add, appkey add and etc.
 
 ## DBus Object
 
-| Dest       | Interface                | Object Path       |
-| ---------- | ------------------------ | ----------------- |
-| org.embest | org.embest.MeshInterface | org/embest/config |
+| Dest       | Interface                   | Object Path       |
+| ---------- | --------------------------- | ----------------- |
+| org.embest | org.embest.mesh.Provisioner | org/embest/config |
 
 ## DBus Method
 
@@ -18,6 +18,7 @@ Config a node such as publication set, subscribe add, appkey add and etc.
 | pub_set         | a{sv}        | null          | Publication set                      |
 | sub_add         | a{sv}        | null          | Add a subscribe                      |
 | composition_get | null         | null          | Get the composition data of a node   |
+| hb_pub_set      | a{sv}        | null          | Heartbeat Publication set            |
 
 > Note: You should enter the "config" menu first.
 
@@ -50,11 +51,23 @@ You should set the target node device first.
 | "sub_addr" | q                 | group addr to subscribe     |
 | "app_idx"  | q                 | app key index, usually be 1 |
 
+### hb_pub_set
+
+This is used to set heartbeat. Then you can subscribe the signal "heartbeat".
+
+
+| Dict Key   | Dict Variant Type | Description                                         |
+| ---------- | ----------------- | --------------------------------------------------- |
+| "pub_addr" | q                 | pub group addr, 0 will stop heartbeat pub           |
+| "net_idx"  | q                 | net index                                           |
+| "period"   | q                 | 2^(period - 1) in second. 0 will stop heartbeat pub |
+
 ## DBus Signal
 
-| Member | Arguments | Description             |
-| ------ | --------- | ----------------------- |
-| status | a{sv}     | Config command response |
+| Member    | Arguments | Description             |
+| --------- | --------- | ----------------------- |
+| status    | a{sv}     | Config command response |
+| heartbeat | a{sv}     | Heartbeat               |
 
 ### status
 
@@ -73,3 +86,17 @@ You should set the target node device first.
 | bind                    | bind          | bind status                                    |
 | pub_set                 | pub           | publication status                             |
 | sub_add                 | sub           | subscribe status                               |
+
+### heartbeat
+
+After setting heartbeat pub, If a node is online, it will pub heart msg periodically. If timeout, it indicates that the node is offline.
+
+| Dict Key        | Dict Variant Type | Description                                  |
+| --------------- | ----------------- | -------------------------------------------- |
+| "src"           | q                 | The node unicast                             |
+| "dst"           | q                 | The msg send to (pub addr)                   |
+| "net_idx"       | q                 | The net index the node belongs to            |
+| "feature_relay" | q                 | 1 indicates the node supports relay feature  |
+| "feature_proxy" | q                 | 1 indicates the node supports proxy feature  |
+| "feature_relay" | q                 | 1 indicates the node supports friend feature |
+| "feature_lpn"   | q                 | 1 indicates the node supports lpn feature    |

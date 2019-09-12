@@ -24,6 +24,8 @@
 #include "gdbus/gdbus.h"
 
 typedef void (*net_mesh_session_open_callback)(int status);
+typedef void (*net_mesh_heartbeat_rxed_callback)(uint16_t net_idx, uint8_t ttl,
+								uint16_t src, uint16_t dst, uint16_t features);
 
 uint32_t net_get_iv_index(bool *iv_update);
 bool net_get_key(uint16_t net_idx, uint8_t *key);
@@ -56,3 +58,5 @@ bool net_register_group(uint16_t group_addr);
 uint32_t net_register_virtual(uint8_t buf[16]);
 bool mesh_model_recv(uint16_t app_idx, uint16_t src, uint32_t dst,
 						uint8_t *payload, uint16_t len);
+
+void net_mesh_heartbeat_set_rxed_callback(net_mesh_heartbeat_rxed_callback callback);

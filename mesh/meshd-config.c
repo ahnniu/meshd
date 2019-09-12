@@ -338,6 +338,71 @@ static DBusMessage *exec_config_node_reset(DBusConnection *conn,
 	return reply;
 }
 
+static DBusMessage *exec_config_hb_pub_set(DBusConnection *conn,
+					DBusMessage *msg, void *user_data)
+{
+	DBusMessage *reply;
+	DBusMessageIter array, dict, entry, variant;
+	int error;
+	int i, array_len, int_value;
+	int variant_type;
+	const char* key;
+	uint16_t pub_addr = 0;
+	uint8_t count = 0xFF;
+	uint8_t period = 7;		// default 64s 2^(n-1)
+	uint8_t ttl = 7;
+	uint16_t features = 0;
+	uint16_t net_idx = 0;
+
+	dbus_message_iter_init(msg, &array);
+
+	if(strcmp(dbus_message_iter_get_signature(&array), "a{sv}")) {
+		return meshd_error_invalid_args(msg);
+	}
+	array_len = dbus_message_iter_get_element_count(&array);
+	dbus_message_iter_recurse(&array, &dict);
+
+	for(i = 0; i < array_len; i++) {
+		dbus_message_iter_recurse(&dict, &entry);
+		dbus_message_iter_get_basic(&entry, &key);
+		dbus_message_iter_next(&entry);
+		dbus_message_iter_recurse(&entry, &variant);
+		variant_type = dbus_message_iter_get_arg_type(&variant);
+		if(variant_type == DBUS_TYPE_UINT16 || variant_type == DBUS_TYPE_UINT32 ||
+				variant_type == DBUS_TYPE_INT16 || variant_type == DBUS_TYPE_INT32) {
+			dbus_message_iter_get_basic(&variant, &int_value);
+			if(!strcmp(key, "pub_addr")) {
+				pub_addr = int_value & 0xFFFF;
+			} else if(!strcmp(key, "net_idx")) {
+				net_idx = int_value;
+			} else if(!strcmp(key, "period")) {
+				period = int_value;
+			}
+		}
+		dbus_message_iter_next(&dict);
+	}
+
+	bt_shell_printf("[dbus][%s][%s] %s.%s"
+		"(pub_addr = %4.4x, count = %d, period = %4.4x, "
+		"ttl = %x, features = %4.4x, net_idx = %x"
+		")\n",
+		dbus_message_get_destination(msg),
+		dbus_message_get_path(msg),
+		dbus_message_get_interface(msg),
+		dbus_message_get_member(msg),
+		pub_addr, count, period,
+		ttl, features, net_idx);
+
+// hb_pub_set <pub_addr> <count> <period> <ttl> <features> <net_idx> Set heartbeat publish
+	error = bt_shell_manual_input_fmt("config.hb_pub_set %4.4x %2.2x %2.2x %x %4.4x %4.4x",
+						pub_addr, count, period,
+						ttl, features, net_idx);
+
+	reply = dbus_message_new_method_return(msg);
+
+	return reply;
+}
+
 static const GDBusMethodTable config_methods[] = {
 	{
 		GDBUS_METHOD("target",
@@ -386,6 +451,12 @@ static const GDBusMethodTable config_methods[] = {
 		NULL,
 		NULL,
 		exec_config_node_reset)
+	},
+	{
+		GDBUS_METHOD("hb_pub_set",
+		GDBUS_ARGS({ "info", "a{sv}" }),
+		NULL,
+		exec_config_hb_pub_set)
 	},
 	{ }
 };
