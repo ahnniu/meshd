@@ -13,7 +13,7 @@
 | discover_unprovisioned | s            | null          | Start / stop scanning unprovisioned devices                 |
 | provision              | s            | null          | Start to provision a new unprovisioned device with its uuid |
 | enter_key              | s            | null          | Enter the key when provsioning                              |
-| connect                | q            | null          | Connect to a mesh net                                       |
+| connect                | a{sv}        | null          | Connect to a mesh net or mesh node                          |
 | disconnect             | null         | null          | Disconnect from the connected net / device                  |
 | mesh_info              | null         | null          | Get the mesh database to sync                               |
 
@@ -45,6 +45,40 @@ $ sudo dbus-send --system --type=method_call --print-reply \
 org.embest.MeshInterface.provision \
 string:"dd000000000000000000000000000000"
 ```
+
+### connect
+
+You can connect to a net or a node:
+
+- You must connect to a node first when you want to config it
+- You must connect to a net when you want to listen / publish data to mesh net
+
+Then you can subscribe the 'connecting' signal to check the connected status
+
+| Dict Key    | Dict Variant Type | Description                                          |
+| ----------- | ----------------- | ---------------------------------------------------- |
+| "net_idx"   | q                 | the net index that you want to connect to            |
+| "node_addr" | q                 | the node unicast address that you want to connect to |
+
+#### connect to a net
+
+| Dict Key    | Dict Variant Type | Description                                   |
+| ----------- | ----------------- | --------------------------------------------- |
+| "net_idx"   | q                 | net index, 0 for example                      |
+| "node_addr" | q                 | not pass this argument(default 0) or set to 0 |
+
+#### connect to a node
+
+If you want to connect to a node, you should make the node entering configuration mode(This will be 'Enable advertising with Node Identity' in mesh) first. Usually, you should press a button or reset / re-power the device.
+
+| Dict Key    | Dict Variant Type | Description                                  |
+| ----------- | ----------------- | -------------------------------------------- |
+| "net_idx"   | q                 | net index the node belongs to, 0 for example |
+| "node_addr" | q                 | node unicast address                         |
+
+### disconnect
+
+Disconnect from a net or node.
 
 ## DBus Signals
 

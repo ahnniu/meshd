@@ -21,9 +21,9 @@ Get an onoff model state, A signal with the new state will be emitted then.
 | ----------- | ----- | ----------- |
 |             | a{sv} |             |
 
-| Dict Key | Dict Variant Type | Description                                      |
-| -------- | ----------------- | ------------------------------------------------ |
-| "addr"   | q                 | Can be the unicast of an element or a group addr |
+| Dict Key | Dict Variant Type | Description            |
+| -------- | ----------------- | ---------------------- |
+| "addr"   | q                 | Should be a group addr |
 
 ### set
 
@@ -33,10 +33,10 @@ Set an onoff model state
 | ----------- | ----- | ----------- |
 | new state   | a{sv} |             |
 
-| Dict Key | Dict Variant Type | Description                                      |
-| -------- | ----------------- | ------------------------------------------------ |
-| "addr"   | q                 | Can be the unicast of an element or a group addr |
-| "state"  | q                 | 0 / 1                                            |
+| Dict Key | Dict Variant Type | Description            |
+| -------- | ----------------- | ---------------------- |
+| "addr"   | q                 | Should be a group addr |
+| "state"  | q                 | 0 / 1                  |
 
 ## DBus Signals
 
