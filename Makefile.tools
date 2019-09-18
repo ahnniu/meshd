@@ -13,9 +13,9 @@ client_bluetoothctl_LDADD = gdbus/libgdbus-internal.la src/libshared-glib.la \
 endif
 
 if MESH
-bin_PROGRAMS += mesh/meshctl
+bin_PROGRAMS += mesh/meshd
 
-mesh_meshctl_SOURCES = mesh/main.c \
+mesh_meshd_SOURCES = mesh/main.c \
 				mesh/mesh-net.h \
 				mesh/node.h mesh/node.c \
 				mesh/gatt.h mesh/gatt.c \
@@ -36,7 +36,7 @@ mesh_meshctl_SOURCES = mesh/main.c \
 				mesh/meshd-config.c \
 				mesh/meshd-onoff-model.c \
 				mesh/heartbeat-model.c
-mesh_meshctl_LDADD = gdbus/libgdbus-internal.la src/libshared-glib.la \
+mesh_meshd_LDADD = gdbus/libgdbus-internal.la src/libshared-glib.la \
 				lib/libbluetooth-internal.la \
 				@GLIB_LIBS@ @DBUS_LIBS@ -ljson-c -lreadline
 endif
