@@ -144,7 +144,7 @@ static DBusMessage *exec_start_connect(DBusConnection *conn,
 		dbus_message_get_member(msg),
 		net_idx, node_addr);
 
-	if(!node_addr) {
+	if(node_addr) {
 		// Connect to node to config
 		error = bt_shell_manual_input_fmt("connect %x %4.4x",
 							net_idx, node_addr);
