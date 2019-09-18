@@ -1930,31 +1930,76 @@ static const struct bt_shell_menu main_menu = {
 };
 
 static const char *mesh_config_dir;
+static const char *mesh_run_in_daemon;
+static const char *mesh_log_filename;
+static int run_in_daemon = 0;
 
 static const struct option options[] = {
 	{ "config",	required_argument, 0, 'c' },
+	{ "daemon",	required_argument, 0, 'd' },
+	{ "log",	required_argument, 0, 'l' },
 	{ 0, 0, 0, 0 }
 };
 
 static const char **optargs[] = {
-	&mesh_config_dir
+	&mesh_config_dir,
+	&mesh_run_in_daemon,
+	&mesh_log_filename
 };
 
 static const char *help[] = {
-	"Read local mesh config JSON files from <directory>"
+	"Read local mesh config JSON files from <directory>",
+	"Start in daemon(1) / shell interactive(0) mode",
+	"\tThe log file"
 };
 
 static const struct bt_shell_opt opt = {
 	.options = options,
 	.optno = sizeof(options) / sizeof(struct option),
-	.optstr = "c:",
+	.optstr = "c:d:l:",
 	.optarg = optargs,
 	.help = help,
 };
 
 static void client_ready(GDBusClient *client, void *user_data)
 {
-	bt_shell_attach(fileno(stdin));
+	if(!run_in_daemon) {
+		bt_shell_attach(fileno(stdin));
+	}
+}
+
+static int start_daemon(const char *filename)
+{
+	int fd;
+
+	if (!filename) {
+		return -ENOENT;
+	}
+
+	fd = open(filename, O_RDWR | O_APPEND | O_CREAT, S_IRWXU | S_IRWXG | S_IRWXO);
+
+	if (fd < 0) {
+		return -EIO;
+		g_printerr("error in redirect_stderr\n");
+	}
+
+	if (daemon(1, 0) < 0) {
+		return -1;
+	}
+
+	if (dup2(fd, STDERR_FILENO) < 0) {
+		g_printerr("dup2: %s", strerror(errno));
+		exit(1);
+	}
+
+	if (dup2(fd, STDOUT_FILENO) < 0) {
+		g_printerr("dup2: %s", strerror(errno));
+		exit(1);
+	}
+
+	close(fd);
+
+	return 0;
 }
 
 int main(int argc, char *argv[])
@@ -1964,11 +2009,9 @@ int main(int argc, char *argv[])
 	int len;
 	int extra;
 
-	bt_shell_init(argc, argv, &opt);
+	bt_shell_init_1_opt_only(argc, argv, &opt);
+	bt_shell_init_2_mainloop();
 	bt_shell_set_menu(&main_menu);
-	bt_shell_set_prompt(PROMPT_OFF);
-
-	bt_shell_set_menu_exec_invalid_cmd_callback(shell_emit_menu_exec_invalid_cmd);
 
 	if (!mesh_config_dir) {
 		bt_shell_printf("Local config directory not provided.\n");
@@ -1976,6 +2019,24 @@ int main(int argc, char *argv[])
 	} else {
 		bt_shell_printf("Reading prov_db.json and local_node.json from"
 				" %s\n", mesh_config_dir);
+	}
+
+	if(mesh_run_in_daemon) {
+		run_in_daemon = atoi(mesh_run_in_daemon);
+	}
+
+	if(run_in_daemon) {
+		if(!mesh_log_filename) {
+			bt_shell_printf("Log filename not provided in daemon mode.\n");
+			goto fail;
+		}
+		setlinebuf(stdout);
+		g_printerr("Start running in daemon mode and logging into %s\n", mesh_log_filename);
+		start_daemon(mesh_log_filename);
+	} else {
+		bt_shell_init_3_rl();
+		bt_shell_set_prompt(PROMPT_OFF);
+		bt_shell_set_menu_exec_invalid_cmd_callback(shell_emit_menu_exec_invalid_cmd);
 	}
 
 	len = strlen(mesh_config_dir);

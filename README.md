@@ -59,7 +59,10 @@ TBD
 
 ```bash
 $ cd /path/to/meshd
+# Start in shell interactive mode
 $ sudo mesh/meshctl --config mesh
+# Start in daemon mode
+$ sudo mesh/meshctl --config mesh --daemon 1 --log mesh/log.txt
 ```
 
 ### DBus configuration

@@ -103,3 +103,7 @@ const struct bt_shell_menu *bt_shell_current_menu();
 const struct queue *bt_shell_get_submenus();
 
 void bt_shell_set_menu_exec_invalid_cmd_callback(bt_shell_menu_cb_t callback);
+
+void bt_shell_init_1_opt_only(int argc, char **argv, const struct bt_shell_opt *opt);
+void bt_shell_init_2_mainloop();
+void bt_shell_init_3_rl();

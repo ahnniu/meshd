@@ -35,6 +35,7 @@
 #include <sys/signalfd.h>
 #include <wordexp.h>
 #include <getopt.h>
+#include <time.h>
 
 #include <readline/readline.h>
 #include <readline/history.h>
@@ -602,6 +603,7 @@ int bt_shell_manual_input(const char *input)
 {
 	wordexp_t w;
 	int status;
+	time_t clock;
 
 	if (!input) {
 		rl_insert_text("quit");
@@ -625,7 +627,8 @@ int bt_shell_manual_input(const char *input)
 		return 1;
 	}
 
-	printf("[exec] %s\n", input);
+	time(&clock);
+	printf("[exec] '%s' at %s", input, ctime(&clock));
 
 	status = shell_exec(w.we_wordc, w.we_wordv);
 	wordfree(&w);
@@ -1045,6 +1048,78 @@ void bt_shell_init(int argc, char **argv, const struct bt_shell_opt *opt)
 
 	mainloop_init();
 
+	rl_init();
+
+	data.init = true;
+}
+
+void bt_shell_init_1_opt_only(int argc, char **argv, const struct bt_shell_opt *opt)
+{
+	int c, index = -1;
+	struct option options[256];
+	char optstr[256];
+	size_t offset;
+
+	offset = sizeof(main_options) / sizeof(struct option);
+
+	memcpy(options, main_options, sizeof(struct option) * offset);
+
+	if (opt) {
+		memcpy(options + offset, opt->options,
+				sizeof(struct option) * opt->optno);
+		snprintf(optstr, sizeof(optstr), "+hvt:%s", opt->optstr);
+	} else
+		snprintf(optstr, sizeof(optstr), "+hvt:");
+
+	while ((c = getopt_long(argc, argv, optstr, options, &index)) != -1) {
+		switch (c) {
+		case 'v':
+			printf("%s: %s\n", argv[0], VERSION);
+			exit(EXIT_SUCCESS);
+			return;
+		case 'h':
+			usage(argc, argv, opt);
+			exit(EXIT_SUCCESS);
+			return;
+		case 't':
+			data.timeout = atoi(optarg);
+			break;
+		default:
+			if (index < 0) {
+				for (index = 0; options[index].val; index++) {
+					if (c == options[index].val)
+						break;
+				}
+			}
+
+			if (c != opt->options[index - offset].val) {
+				usage(argc, argv, opt);
+				exit(EXIT_SUCCESS);
+				return;
+			}
+
+			*opt->optarg[index - offset] = optarg;
+		}
+
+		index = -1;
+	}
+
+	data.argc = argc - optind;
+	data.argv = argv + optind;
+	optind = 0;
+	data.mode = (data.argc > 0);
+
+	if (data.mode)
+		bt_shell_set_env("NON_INTERACTIVE", &data.mode);
+}
+
+void bt_shell_init_2_mainloop()
+{
+	mainloop_init();
+}
+
+void bt_shell_init_3_rl()
+{
 	rl_init();
 
 	data.init = true;
