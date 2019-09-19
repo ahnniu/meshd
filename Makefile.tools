@@ -13,7 +13,7 @@ client_bluetoothctl_LDADD = gdbus/libgdbus-internal.la src/libshared-glib.la \
 endif
 
 if MESH
-bin_PROGRAMS += mesh/meshd
+bin_PROGRAMS += mesh/meshd mesh/bluetooth-meshd
 
 mesh_meshd_SOURCES = mesh/main.c \
 				mesh/mesh-net.h \
@@ -39,9 +39,36 @@ mesh_meshd_SOURCES = mesh/main.c \
 mesh_meshd_LDADD = gdbus/libgdbus-internal.la src/libshared-glib.la \
 				lib/libbluetooth-internal.la \
 				@GLIB_LIBS@ @DBUS_LIBS@ -ljson-c -lreadline
+
+mesh_meshd_DEPENDENCIES = mesh/bluetooth-meshd
+
+SH_SED_PROCESS = $(AM_V_GEN)$(MKDIR_P) $(dir $@) && \
+		$(SED) -e 's,@libexecdir\@,$(libexecdir),g' \
+			-e 's,@runstatedir\@,$(runstatedir),g' \
+			-e 's,@localstatedir\@,$(localstatedir),g' \
+			-e 's,@sysconfdir\@,$(sysconfdir),g' \
+			-e 's,@bindir\@,$(bindir),g' \
+		< $< > $@
+
+mesh/bluetooth-meshd.sh: mesh/bluetooth-meshd.sh.in Makefile
+	$(SH_SED_PROCESS)
+
+mesh/bluetooth-meshd: mesh/bluetooth-meshd.sh Makefile
+	$(AM_V_GEN)$(MKDIR_P) $(dir $@) && \
+	cp $< $@ && \
+	chmod +x $@
+
+if DATAFILES
+dbus_DATA += mesh/conf/embest.conf
+mesh_statedir = $(statedir)/mesh
+mesh_state_DATA = mesh/local_node.json mesh/prov_db.json
+endif
+
 endif
 
 EXTRA_DIST += mesh/local_node.json mesh/prov_db.json
+EXTRA_DIST += mesh/bluetooth-meshd.sh.in
+CLEANFILES += mesh/bluetooth-meshd.sh mesh/bluetooth-meshd
 
 if MONITOR
 bin_PROGRAMS += monitor/btmon

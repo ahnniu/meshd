@@ -1,0 +1,41 @@
+#!/bin/sh
+
+set -e
+
+NAME=meshd
+
+STATEDIR=@localstatedir@/lib/bluetooth/mesh
+LOGDIR=/var/log/bluetooth/mesh
+LOGFILE=/var/log/bluetooth/mesh/meshd.log
+
+DAEMON=@bindir@/meshd
+DAEMON_OPTS="--config ${STATEDIR} --daemon 1 --log ${LOGFILE}"
+
+mkdir -p ${LOGDIR}
+
+export PATH="${PATH:+$PATH:}/usr/bin:/bin:/usr/sbin:/sbin"
+
+case "$1" in
+  start)
+    echo -n "Starting daemon: "$NAME " - "
+    start-stop-daemon --start --quiet --exec $DAEMON -- $DAEMON_OPTS
+    echo "."
+    ;;
+  stop)
+    echo -n "Stopping daemon: "$NAME
+    start-stop-daemon --stop --quiet --exec $DAEMON -- $DAEMON_OPTS
+    echo "."
+    ;;
+  restart)
+    echo -n "Restarting daemon: "$NAME
+    start-stop-daemon --stop --quiet --oknodo --retry 30 --exec $DAEMON -- $DAEMON_OPTS
+    start-stop-daemon --start --quiet --exec $DAEMON -- $DAEMON_OPTS
+    echo "."
+    ;;
+
+  *)
+    echo "Usage: "$1" {start|stop|restart}"
+    exit 1
+esac
+
+exit 0
