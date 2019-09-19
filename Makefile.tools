@@ -13,9 +13,9 @@ client_bluetoothctl_LDADD = gdbus/libgdbus-internal.la src/libshared-glib.la \
 endif
 
 if MESH
-bin_PROGRAMS += mesh/meshd mesh/bluetooth-meshd
+bin_PROGRAMS += mesh/meshctl mesh/meshd
 
-mesh_meshd_SOURCES = mesh/main.c \
+mesh_meshctl_SOURCES = mesh/main.c \
 				mesh/mesh-net.h \
 				mesh/node.h mesh/node.c \
 				mesh/gatt.h mesh/gatt.c \
@@ -36,11 +36,11 @@ mesh_meshd_SOURCES = mesh/main.c \
 				mesh/meshd-config.c \
 				mesh/meshd-onoff-model.c \
 				mesh/heartbeat-model.c
-mesh_meshd_LDADD = gdbus/libgdbus-internal.la src/libshared-glib.la \
+mesh_meshctl_LDADD = gdbus/libgdbus-internal.la src/libshared-glib.la \
 				lib/libbluetooth-internal.la \
 				@GLIB_LIBS@ @DBUS_LIBS@ -ljson-c -lreadline
 
-mesh_meshd_DEPENDENCIES = mesh/bluetooth-meshd
+mesh_meshctl_DEPENDENCIES = mesh/meshd mesh/bluetooth-meshd.service
 
 SH_SED_PROCESS = $(AM_V_GEN)$(MKDIR_P) $(dir $@) && \
 		$(SED) -e 's,@libexecdir\@,$(libexecdir),g' \
@@ -50,13 +50,16 @@ SH_SED_PROCESS = $(AM_V_GEN)$(MKDIR_P) $(dir $@) && \
 			-e 's,@bindir\@,$(bindir),g' \
 		< $< > $@
 
-mesh/bluetooth-meshd.sh: mesh/bluetooth-meshd.sh.in Makefile
+mesh/meshd.sh: mesh/meshd.sh.in Makefile
 	$(SH_SED_PROCESS)
 
-mesh/bluetooth-meshd: mesh/bluetooth-meshd.sh Makefile
+mesh/meshd: mesh/meshd.sh Makefile
 	$(AM_V_GEN)$(MKDIR_P) $(dir $@) && \
 	cp $< $@ && \
 	chmod +x $@
+
+mesh/bluetooth-meshd.service: mesh/bluetooth-meshd.service.in Makefile
+	$(SH_SED_PROCESS)
 
 if DATAFILES
 dbus_DATA += mesh/conf/embest.conf
@@ -64,11 +67,18 @@ mesh_statedir = $(statedir)/mesh
 mesh_state_DATA = mesh/local_node.json mesh/prov_db.json
 endif
 
+if SYSTEMD
+systemdsystemunit_DATA += mesh/bluetooth-meshd.service
+endif
+
+# install-exec-hook:
+# 	$(AM_V_GEN)$(LN_S) $(bindir)/bluetooth-meshd $(libexecdir)/embest-meshd
+
 endif
 
 EXTRA_DIST += mesh/local_node.json mesh/prov_db.json
-EXTRA_DIST += mesh/bluetooth-meshd.sh.in
-CLEANFILES += mesh/bluetooth-meshd.sh mesh/bluetooth-meshd
+EXTRA_DIST += mesh/meshd.sh.in mesh/bluetooth-meshd.service.in
+CLEANFILES += mesh/meshd.sh mesh/meshd mesh/bluetooth-meshd.service
 
 if MONITOR
 bin_PROGRAMS += monitor/btmon

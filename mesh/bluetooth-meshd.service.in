@@ -1,0 +1,15 @@
+[Unit]
+Description=Bluetooth meshd service
+Documentation=https://github.com/ahnniu/meshd
+After=bluetooth.target
+
+[Service]
+ExecStart=@bindir@/meshd start
+ExecStop=@bindir@/meshd stop
+User=root
+Group=root
+Type=oneshot
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target

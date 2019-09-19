@@ -51,21 +51,44 @@ $ make
 
 ### Install
 
-TBD
+```bash
+$ cd /path/to/meshd
+$ sudo make install
+```
+> - meshctl will be installed in /usr/bin/meshctl
+> - meshd will be installed in /usr/bin/meshd
+> - bluetooth-meshd.service will be installed in /lib/systemd/system/bluetooth-meshd.service
 
 ## How to use
 
-### Start the meshd
+### Start / Stop the program
+
+#### Start the meshctl
 
 ```bash
-$ cd /path/to/meshd
+$ cd /path/to/meshctl
 # Start in shell interactive mode
-$ sudo mesh/meshd --config mesh
+$ sudo mesh/meshctl --config mesh
 # Start in daemon mode
-$ sudo mesh/meshd --config mesh --daemon 1 --log mesh/log.txt
+$ sudo mesh/meshctl --config mesh --daemon 1 --log mesh/log.txt
+```
+#### Start daemon with meshd script
+
+```bash
+# start / stop / restart
+# logfile -> /var/log/bluetooth/mesh/meshd.log
+# config dir -> /var/lib/bluetooth/mesh
+$ sudo meshd start
+```
+#### Start daemon with systemctl
+
+```bash
+# logfile -> /var/log/bluetooth/mesh/meshd.log
+# config dir -> /var/lib/bluetooth/mesh
+sudo systemctl start bluetooth-meshd
 ```
 
-### DBus configuration
+#### DBus configuration
 
 ```bash
 $ cd /path/to/meshd

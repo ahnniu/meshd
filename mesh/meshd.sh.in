@@ -8,7 +8,7 @@ STATEDIR=@localstatedir@/lib/bluetooth/mesh
 LOGDIR=/var/log/bluetooth/mesh
 LOGFILE=/var/log/bluetooth/mesh/meshd.log
 
-DAEMON=@bindir@/meshd
+DAEMON=@bindir@/meshctl
 DAEMON_OPTS="--config ${STATEDIR} --daemon 1 --log ${LOGFILE}"
 
 mkdir -p ${LOGDIR}
