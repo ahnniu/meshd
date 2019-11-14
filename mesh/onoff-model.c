@@ -51,30 +51,14 @@
 #include "mesh/dbus-server.h"
 #include "mesh/meshd-shell.h"
 #include "mesh/meshd-model.h"
+#include "mesh/cli-model.h"
 #include "mesh/meshd-onoff-model.h"
 
 static uint8_t trans_id;
-static uint16_t onoff_app_idx = APP_IDX_INVALID;
 
 static bool client_onoff_status_msg_recvd(uint16_t src, uint16_t dst,
  						uint8_t *data, uint16_t len, void *user_data);
 
-static int client_bind(uint16_t app_idx, int action)
-{
-	if (action == ACTION_ADD) {
-		if (onoff_app_idx != APP_IDX_INVALID) {
-			return MESH_STATUS_INSUFF_RESOURCES;
-		} else {
-			onoff_app_idx = app_idx;
-			bt_shell_printf("On/Off client model: new binding"
-					" %4.4x\n", app_idx);
-		}
-	} else {
-		if (onoff_app_idx == app_idx)
-			onoff_app_idx = APP_IDX_INVALID;
-	}
-	return MESH_STATUS_SUCCESS;
-}
 
 static int print_remaining_time(uint8_t remaining_time)
 {
@@ -115,39 +99,6 @@ static int print_remaining_time(uint8_t remaining_time)
 	return hours * 3600000 + minutes * 60000 + secs * 1000 + msecs;
 }
 
-static bool client_msg_recvd(uint16_t src, uint8_t *data,
-				uint16_t len, void *user_data)
-{
-	uint32_t opcode;
-	int n;
-	uint16_t local_node_unicast;
-
-	local_node_unicast = node_get_primary(node_get_local_node());
-
-	if (mesh_opcode_get(data, len, &opcode, &n)) {
-		len -= n;
-		data += n;
-	} else
-		return false;
-
-	bt_shell_printf("On Off Model Message received (%d) opcode %x\n",
-								len, opcode);
-	print_byte_array("\t",data, len);
-
-	switch (opcode & ~OP_UNRELIABLE) {
-	default:
-		return false;
-
-	case OP_GENERIC_ONOFF_STATUS:
-		return client_onoff_status_msg_recvd(src, local_node_unicast,
-				data, len, NULL);
-		break;
-	}
-
-	return true;
-}
-
-
 static uint32_t parms[8];
 
 static uint32_t read_input_parameters(int argc, char *argv[])
@@ -173,20 +124,6 @@ static uint32_t read_input_parameters(int argc, char *argv[])
 	}
 
 	return i;
-}
-
-static bool send_cmd(uint16_t target, uint8_t *buf, uint16_t len)
-{
-	struct mesh_node *node = node_get_local_node();
-	uint8_t ttl;
-
-	if(!node)
-		return false;
-
-	ttl = node_get_default_ttl(node);
-
-	return net_access_layer_send(ttl, node_get_primary(node),
-					target, onoff_app_idx, buf, len);
 }
 
 static void cmd_get_status(int argc, char *argv[])
@@ -220,7 +157,7 @@ static void cmd_get_status(int argc, char *argv[])
 		}
 	}
 
-	n = mesh_opcode_set(OP_GENERIC_ONOFF_GET, msg);
+	n = mesh_opcode_set(BT_MESH_MODEL_OP_GEN_ONOFF_GET, msg);
 
 	if (!send_cmd(target, msg, n)) {
 		bt_shell_printf("Failed to send \"GENERIC ON/OFF GET\"\n");
@@ -263,7 +200,7 @@ static void cmd_set(int argc, char *argv[])
 		}
 	}
 
-	n = mesh_opcode_set(OP_GENERIC_ONOFF_SET, msg);
+	n = mesh_opcode_set(BT_MESH_MODEL_OP_GEN_ONOFF_SET, msg);
 	msg[n++] = parms[1];
 	msg[n++] = trans_id++;
 
@@ -285,13 +222,6 @@ static const struct bt_shell_menu onoff_menu = {
 	{"set",		"<addr> <0/1>",			cmd_set,
 						"Send \"SET ON/OFF\" command"},
 	{} },
-};
-
-static struct mesh_model_ops client_cbs = {
-	client_msg_recvd,
-	client_bind,
-	NULL,
-	NULL
 };
 
 static bool client_onoff_status_msg_recvd(uint16_t src, uint16_t dst,
@@ -323,18 +253,14 @@ static bool client_onoff_status_msg_recvd(uint16_t src, uint16_t dst,
 	return true;
 }
 
-static struct mesh_opcode_ops client_onoff_status_cbs = {
-	client_onoff_status_msg_recvd
+static struct mesh_opcode_op onoff_ops[] = {
+	{ "Generic OnOff Status", BT_MESH_MODEL_OP_GEN_ONOFF_STATUS, client_onoff_status_msg_recvd, NULL },
+	MESH_OPCODE_OP_END
 };
 
-bool onoff_client_init(uint8_t ele)
+bool onoff_client_init()
 {
-	if (!node_local_model_register(ele, GENERIC_ONOFF_CLIENT_MODEL_ID,
-					&client_cbs, NULL))
-		return false;
-
-	if(!node_remote_opcode_register("Generic OnOff Status", OP_GENERIC_ONOFF_STATUS,
-					&client_onoff_status_cbs, NULL))
+	if(!node_remote_opcode_register(onoff_ops))
 		return false;
 
 	bt_shell_add_submenu(&onoff_menu);

@@ -83,13 +83,6 @@ struct mesh_node {
 	struct mesh_node_composition *comp;
 };
 
-struct mesh_opcode {
-	const char *name;
-	uint32_t code;
-	struct mesh_opcode_ops cbs;
-	void *user_data;
-};
-
 static GList *nodes;
 
 static struct mesh_node *local_node;
@@ -98,13 +91,13 @@ static GList *opcodes;
 
 static int match_opcode_code(const void *a, const void *b)
 {
-	const struct mesh_opcode *opcode = a;
+	const struct mesh_opcode_op *op = a;
 	uint32_t code = GPOINTER_TO_UINT(b);
 
-	return (opcode->code == code) ? 0 : -1;
+	return (op && op->code == code) ? 0 : -1;
 }
 
-static struct mesh_opcode *opcode_find_by_code(uint32_t code)
+static struct mesh_opcode_op *opcode_find_by_code(uint32_t code)
 {
 	GList *l;
 
@@ -115,13 +108,6 @@ static struct mesh_opcode *opcode_find_by_code(uint32_t code)
 		return l->data;
 	else
 		return NULL;
-}
-
-static void free_opcode_resources(void *data)
-{
-	struct mesh_opcode *opcode = data;
-
-	g_free(opcode);
 }
 
 static int match_node_unicast(const void *a, const void *b)
@@ -596,7 +582,7 @@ static bool deliver_group_addr_type_data(uint16_t src, uint32_t dst,
 				uint16_t app_idx, uint8_t *data, uint16_t len)
 {
 	struct mesh_model *model;
-	struct mesh_opcode *opcode;
+	struct mesh_opcode_op *op;
 	uint32_t id;
 	uint32_t code;
 	int n;
@@ -613,19 +599,19 @@ static bool deliver_group_addr_type_data(uint16_t src, uint32_t dst,
 	} else
 		return false;
 
-	opcode = opcode_find_by_code(code);
+	op = opcode_find_by_code(code);
 
 	bt_shell_printf("[PubCaptured]: src: %4.4x, dst: %4.4x, opcode: %8.8x "
 			"%s callback registered\n",
 			src, dst, code,
-			opcode ? "with" : "no");
+			op ? "with" : "no");
 
-	if(!opcode) {
+	if(!op) {
 		return false;
 	}
 
-	if(opcode->cbs.recv) {
-		return opcode->cbs.recv(src, dst, data, len, opcode->user_data);
+	if(op->recv) {
+		return op->recv(src, dst, data, len, op->user_data);
 	}
 
 	return false;
@@ -1036,34 +1022,15 @@ struct mesh_publication *node_model_pub_get(struct mesh_node *node, uint8_t ele,
 
 void node_remote_opcode_cleanup()
 {
-	g_list_free_full(opcodes, free_opcode_resources);
+	g_list_free(opcodes);
 	opcodes = NULL;
 }
 
-bool node_remote_opcode_register(const char *name, uint32_t code,
-				struct mesh_opcode_ops *ops, void *user_data)
+bool node_remote_opcode_register(struct mesh_opcode_op *ops)
 {
-	struct mesh_opcode *opcode;
-
-	opcode = opcode_find_by_code(code);
-
-	if(opcode) {
-		// Already in list
-		return false;
+	for(struct mesh_opcode_op *op = ops; op && op->code != 0; op++) {
+		 opcodes = g_list_append(opcodes, op);
 	}
-
-	opcode = g_malloc0(sizeof(struct mesh_opcode));
-
-	if(!opcode) {
-		return false;
-	}
-
-	opcode->name = name;
-	opcode->code = code;
-	opcode->cbs = *ops;
-	opcode->user_data = user_data;
-
-	opcodes = g_list_append(opcodes, opcode);
 
 	return true;
 }

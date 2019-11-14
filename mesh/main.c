@@ -2106,7 +2106,7 @@ int main(int argc, char *argv[])
 	if (!config_server_init())
 		g_printerr("Failed to initialize mesh configuration server\n");
 
-	if (!onoff_client_init(PRIMARY_ELEMENT_IDX))
+	if (!onoff_client_init())
 		g_printerr("Failed to initialize mesh generic On/Off client\n");
 
 	if(!heartbeat_init()) {

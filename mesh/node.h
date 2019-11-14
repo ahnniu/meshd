@@ -71,9 +71,14 @@ struct mesh_model_ops {
 	node_model_sub_callback sub;
 };
 
-struct mesh_opcode_ops {
+struct mesh_opcode_op {
+	const char *name;
+	uint32_t code;
 	remote_model_recv_callback recv;
+	void *user_data;
 };
+
+#define MESH_OPCODE_OP_END { NULL, 0, NULL, NULL }
 
 struct mesh_node *node_find_by_addr(uint16_t addr);
 struct mesh_node *node_find_by_uuid(uint8_t uuid[16]);
@@ -131,6 +136,5 @@ bool node_model_pub_set(struct mesh_node *node, uint8_t ele, uint32_t model_id,
 struct mesh_publication *node_model_pub_get(struct mesh_node *node, uint8_t ele,
 							uint32_t model_id);
 
-bool node_remote_opcode_register(const char *name, uint32_t code,
-						struct mesh_opcode_ops *ops, void *user_data);
+bool node_remote_opcode_register(struct mesh_opcode_op *ops);
 void node_remote_opcode_cleanup();

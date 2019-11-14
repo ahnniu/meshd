@@ -3,13 +3,13 @@
 
 #define onoff_emit_new_state_with_remaining(src, dst, state, remaining_time) \
 				model_emit_status(MESHCTLD_OBJECT_PATH_MODEL_ONOFF, \
-					GENERIC_ONOFF_SERVER_MODEL_ID, src, dst, \
+					BT_MESH_MODEL_ID_GEN_ONOFF_SRV, src, dst, \
 					"state=%q, remaining=%i", \
 					state, remaining_time)
 
 #define onoff_emit_new_state(src, dst, state) \
 				model_emit_status(MESHCTLD_OBJECT_PATH_MODEL_ONOFF, \
-					GENERIC_ONOFF_SERVER_MODEL_ID, src, dst, \
+					BT_MESH_MODEL_ID_GEN_ONOFF_SRV, src, dst, \
 					"state=%q", \
 					state)
 

@@ -20,14 +20,12 @@
  *  Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
  *
  */
+#include "mesh/model.h"
 
-#define GENERIC_ONOFF_SERVER_MODEL_ID	0x1000
-#define GENERIC_ONOFF_CLIENT_MODEL_ID	0x1001
+#define BT_MESH_MODEL_OP_GEN_ONOFF_GET		BT_MESH_MODEL_OP_2(0x82, 0x01)
+#define BT_MESH_MODEL_OP_GEN_ONOFF_SET		BT_MESH_MODEL_OP_2(0x82, 0x02)
+#define BT_MESH_MODEL_OP_GEN_ONOFF_SET_UNACK	BT_MESH_MODEL_OP_2(0x82, 0x03)
+#define BT_MESH_MODEL_OP_GEN_ONOFF_STATUS	BT_MESH_MODEL_OP_2(0x82, 0x04)
 
-#define OP_GENERIC_ONOFF_GET			0x8201
-#define OP_GENERIC_ONOFF_SET			0x8202
-#define OP_GENERIC_ONOFF_SET_UNACK		0x8203
-#define OP_GENERIC_ONOFF_STATUS			0x8204
 
-void onoff_set_node(const char *args);
-bool onoff_client_init(uint8_t ele);
+bool onoff_client_init();
