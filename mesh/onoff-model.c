@@ -254,7 +254,7 @@ static bool client_onoff_status_msg_recvd(uint16_t src, uint16_t dst,
 }
 
 static struct mesh_opcode_op onoff_ops[] = {
-	{ "Generic OnOff Status", BT_MESH_MODEL_OP_GEN_ONOFF_STATUS, client_onoff_status_msg_recvd, NULL },
+	MESH_OPCODE_OP(BT_MESH_MODEL_OP_GEN_ONOFF_STATUS, client_onoff_status_msg_recvd, NULL),
 	MESH_OPCODE_OP_END
 };
 

@@ -66,6 +66,8 @@
 #include "mesh/meshd-config.h"
 #include "mesh/meshd-onoff-model.h"
 #include "mesh/foundation-models.h"
+#include "mesh/sensor-model.h"
+#include "mesh/meshd-sensor-model.h"
 
 /* String display constants */
 #define COLORED_NEW	COLOR_GREEN "NEW" COLOR_OFF
@@ -2113,6 +2115,9 @@ int main(int argc, char *argv[])
 		g_printerr("Failed to initialize mesh heartbeat\n");
 	}
 
+	if (!sensor_client_init())
+		g_printerr("Failed to initialize mesh Sensor client\n");
+
 	if (meshd_connect_dbus() < 0) {
 		g_printerr("Unable to get on meshd D-Bus\n");
 		status = EXIT_FAILURE;
@@ -2145,6 +2150,12 @@ int main(int argc, char *argv[])
 
 	if(meshd_onoff_register() < 0) {
 		g_printerr("D-bus Onoff object register failed\n");
+		status = EXIT_FAILURE;
+		goto quit;
+	}
+
+	if(meshd_sensor_register() < 0) {
+		g_printerr("D-bus Sensor object register failed\n");
 		status = EXIT_FAILURE;
 		goto quit;
 	}

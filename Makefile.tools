@@ -36,7 +36,9 @@ mesh_meshctl_SOURCES = mesh/main.c \
 				mesh/meshd-config.c \
 				mesh/meshd-onoff-model.c \
 				mesh/heartbeat-model.c \
-				mesh/cli-model.c
+				mesh/cli-model.c \
+				mesh/sensor-model.c \
+				mesh/meshd-sensor-model.c
 mesh_meshctl_LDADD = gdbus/libgdbus-internal.la src/libshared-glib.la \
 				lib/libbluetooth-internal.la \
 				@GLIB_LIBS@ @DBUS_LIBS@ -ljson-c -lreadline

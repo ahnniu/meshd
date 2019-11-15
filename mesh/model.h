@@ -66,4 +66,14 @@
 #define BT_MESH_MODEL_OP_2(b0, b1) (((b0) << 8) | (b1))
 #define BT_MESH_MODEL_OP_3(b0, cid) ((((b0) << 16) | 0xc00000) | (cid))
 
+
+#define MESH_MODEL_OPCODE_STRING(code) code##_AS_STRING
+
+#define MESH_OPCODE_OP(code, handler, user_data) \
+	{ code##_AS_STRING, code, handler, user_data }
+
+#define MESH_OPCODE_OP_WITHOUT_DATA(code, handler) \
+	{ code##_AS_STRING, code, handler, NULL }
+
+
 #endif
