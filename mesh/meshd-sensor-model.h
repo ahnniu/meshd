@@ -7,6 +7,7 @@
 					BT_MESH_MODEL_ID_SENSOR_SETUP_SRV, src, dst, \
 					"name=%s, " \
 					dict, \
+					name, \
 					## __VA_ARGS__)
 
 #define sensor_emit_sensor_desc_status(src, dst, prop_id, desc) \

@@ -167,7 +167,7 @@ static bool sensor_status_recvd(uint16_t src, uint16_t dst,
 		return false;
 	}
 
-	bt_shell_printf("Sensor Status recived\n");
+	bt_shell_printf("Sensor Status recived [src = %4.4x, dst = %4.4x]\n", src, dst);
 
 	// ["%2x", ...]
 	jbuf_len = len * 5;
@@ -201,7 +201,7 @@ static bool sensor_status_recvd(uint16_t src, uint16_t dst,
 		jbuf[n++] = ']';
 		jbuf[n] = 0;
 		buf += raw_len;
-		bt_shell_printf("\t\tRAW: %s", jbuf);
+		bt_shell_printf("\t\tRAW: %s\n", jbuf);
 		sensor_emit_sensor_status(src, dst, prop_id, raw_len, jbuf);
 	}
 
